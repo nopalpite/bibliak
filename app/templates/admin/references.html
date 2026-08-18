@@ -50,7 +50,7 @@
         </form>
         <form hx-post="{{ url_for('admin.delete_reference', model_name=model_name, item_id=item.id) }}" hx-target="#admin-content"
               onsubmit="return confirm({{ t('Delete "{name}"? Linked books will lose this information.', name=(item.name if item.name is defined else item.label))|tojson }});">
-          <button type="submit" class="text-xs px-2 py-1 rounded-md" style="color: var(--ink-muted);">{{ t('Delete') }}</button>
+          <button type="submit" class="text-xs px-2 py-1 rounded-md font-medium" style="color: var(--accent);">{{ t('Delete') }}</button>
         </form>
       </li>
       {% endfor %}
@@ -59,7 +59,8 @@
     {% if items|length > 1 %}
     <details class="mb-3">
       <summary class="text-xs cursor-pointer select-none" style="color: var(--ink-muted);">{{ t('Merge two duplicate entries') }}</summary>
-      <form hx-post="{{ url_for('admin.merge_reference', model_name=model_name) }}" hx-target="#admin-content" class="flex flex-wrap items-center gap-2 mt-2">
+      <form hx-post="{{ url_for('admin.merge_reference', model_name=model_name) }}" hx-target="#admin-content" class="flex flex-wrap items-center gap-2 mt-2"
+            onsubmit="return confirmMerge(this);">
         <select name="source_id" class="px-2 py-1.5 rounded-md border text-xs bg-transparent" style="border-color: var(--border);">
           {% for item in items %}<option value="{{ item.id }}">{{ item.name if item.name is defined else item.label }}</option>{% endfor %}
         </select>
@@ -67,7 +68,7 @@
         <select name="target_id" class="px-2 py-1.5 rounded-md border text-xs bg-transparent" style="border-color: var(--border);">
           {% for item in items %}<option value="{{ item.id }}">{{ item.name if item.name is defined else item.label }}</option>{% endfor %}
         </select>
-        <button type="submit" class="text-xs px-3 py-1.5 rounded-md border" style="border-color: var(--border);">{{ t('Merge') }}</button>
+        <button type="submit" class="text-xs px-3 py-1.5 rounded-md border font-medium" style="border-color: var(--accent); color: var(--accent);">{{ t('Merge') }}</button>
       </form>
     </details>
     {% endif %}
@@ -86,3 +87,33 @@
   {{ reference_section(t('Locations'), "locations", locations, t('New location (e.g. Living room — shelf 2)')) }}
 
 </div>
+
+<script>
+  // Merging is destructive (the source entry is deleted once its books are
+  // reassigned), but which two entries are picked is only known client-side
+  // at submit time — the confirmation message is built here instead of
+  // server-side.
+  //
+  // Every add/delete/rename/merge in this tab targets #admin-content, so
+  // this whole partial — including this <script> block — re-executes on
+  // every one of those actions. Plain `window.x = ...` assignment (no
+  // var/let/const declaration) is deliberate: re-running a declaration
+  // throws in some environments, but a repeated property assignment never
+  // does, regardless of how htmx re-injects the script tag.
+  window.MERGE_I18N = {
+    confirm: {{ t('Merge "{source}" into "{target}"? "{source}" will be permanently deleted and its books reassigned to "{target}". This can\'t be undone.')|tojson }},
+    sameEntry: {{ t('Choose two different entries to merge.')|tojson }},
+  };
+
+  window.confirmMerge = function (form) {
+    const sourceSelect = form.elements['source_id'];
+    const targetSelect = form.elements['target_id'];
+    if (sourceSelect.value === targetSelect.value) {
+      alert(MERGE_I18N.sameEntry);
+      return false;
+    }
+    const sourceText = sourceSelect.options[sourceSelect.selectedIndex].text;
+    const targetText = targetSelect.options[targetSelect.selectedIndex].text;
+    return confirm(MERGE_I18N.confirm.replaceAll('{source}', sourceText).replaceAll('{target}', targetText));
+  };
+</script>

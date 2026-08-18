@@ -104,7 +104,7 @@
         </a>
         <form method="post" action="{{ url_for('books.delete', book_id=book.id) }}"
               onsubmit="return confirm({{ t('Permanently delete "{title}" from the collection?', title=book.title)|tojson }});">
-          <button type="submit" class="px-4 py-2 rounded-lg text-sm border" style="border-color: var(--border); color: var(--ink-muted);">
+          <button type="submit" class="px-4 py-2 rounded-lg text-sm border" style="border-color: var(--accent); color: var(--accent);">
             {{ t('Delete') }}
           </button>
         </form>
