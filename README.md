@@ -18,19 +18,42 @@ Built to the agreed spec: Flask + SQLite, HTMX + Alpine.js for dynamic interacti
 
 ## Quick start (Docker)
 
+**Prerequisites**: [Docker](https://docs.docker.com/get-docker/) and Docker Compose (bundled with Docker Desktop, or the `docker-compose-plugin` package on Linux).
+
+1. Clone the repository and move into it:
+
+   ```bash
+   git clone https://github.com/nopalpite/bibliak.git
+   cd bibliak
+   ```
+
+2. Create your `.env` file from the example, and adjust it if needed (see [Environment variables](#environment-variables) below — the defaults work out of the box for a first try):
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. Build the image and start the container:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+   This builds the image locally from the `Dockerfile` (nothing is pulled from a registry). First build takes a minute or two; subsequent ones are cached.
+
+4. Open the app:
+   - From the PC hosting the container: `https://localhost:8000`
+   - From another device on the local network (e.g. your smartphone): `https://<machine-ip>:8000` — see [Enabling camera scanning from a smartphone](#enabling-camera-scanning-from-a-smartphone) to make the certificate valid for that address.
+
+**Data persistence**: the SQLite database, the cover images, and the self-signed certificate are kept in `./data/` on the host, outside the container — they survive `docker compose down`, image rebuilds, and updates.
+
+**Useful commands**:
+
 ```bash
-cp .env.example .env
-docker compose up -d --build
-```
-
-The app is then reachable at `https://localhost:8000` from the PC hosting the container, and at `https://<machine-ip>:8000` from another device on the local network (notably your smartphone).
-
-Data (SQLite database and covers) is kept in `./data/`, outside the container: it survives image updates and rebuilds.
-
-To stop the app:
-
-```bash
-docker compose down
+docker compose logs -f          # follow the app's logs
+docker compose restart          # restart after editing .env
+docker compose up -d --build    # rebuild and restart after pulling code changes
+docker compose down             # stop and remove the container (data in ./data/ is kept)
 ```
 
 ### Enabling camera scanning from a smartphone
@@ -54,6 +77,19 @@ If the message *"Camera access unavailable"* still shows up on the Scanner page,
 
 If TLS is terminated upstream by a reverse proxy, set `HTTPS_AUTOSIGNE=false` in `.env`: the container stops generating a certificate and serves the app in plain HTTP on port 8000.
 
+## Environment variables
+
+All variables are read from `.env` (copied from `.env.example`). None are required to get started — the defaults are sensible for local, single-user use.
+
+| Variable | Default | Description |
+|---|---|---|
+| `SECRET_KEY` | `change-me-in-production` | Flask session signing key. Only used for the short-lived scan pre-fill session; low-stakes here, but worth setting to a random value (`python -c "import secrets; print(secrets.token_hex(32))"`) if the app is reachable beyond your own machine. |
+| `DATABASE_PATH` | `instance/biblio.sqlite3` | Path to the SQLite database file, relative to the project root. With Docker, this lives inside the container at that path, which is mounted to `./data/instance/` on the host — you shouldn't need to change it. |
+| `PRIORITY_API` | `openlibrary` | Which ISBN metadata source to try first: `openlibrary` or `googlebooks`. Also configurable at runtime from Administration > Settings (that setting takes precedence once set). |
+| `GOOGLE_BOOKS_API_KEY` | *(empty)* | Optional Google Books API key, for higher request quotas. Not required — Google Books works without a key at a lower rate limit. |
+| `CONTACT_INFO` | *(empty)* | An email or phone number sent in the `User-Agent` header to Open Library / Google Books. Recommended: Open Library grants a 3x higher rate limit (3 req/s instead of 1) to identified requests. |
+| `HOST_IP` | *(empty)* | Local IP address of the machine hosting Docker (e.g. `192.168.1.20`). Needed so the self-signed HTTPS certificate is valid for that address too, not just `localhost` — required for camera scanning from a smartphone on the network. |
+| `HTTPS_AUTOSIGNE` | `true` | `true`: the container generates and serves its own self-signed HTTPS certificate. `false`: TLS is assumed to be terminated upstream (reverse proxy); the container serves plain HTTP on port 8000. See [Running behind a reverse proxy](#running-behind-a-reverse-proxy) above. |
 
 ## Local development (without Docker)
 
@@ -70,19 +106,23 @@ flask run --debug --port 8000
 
 ```
 biblio-app/
+├── .github/workflows/    # CI (lint + tests) and Docker image publish
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
+├── requirements-dev.txt  # + pytest, ruff
 ├── run.py
 ├── app/
 │   ├── config.py            # configuration (paths, API keys...)
 │   ├── extensions.py         # SQLAlchemy, Migrate
-│   ├── models/                # Book, Author, Publisher, Series, Tag, Location, Setting
-│   ├── services/               # business logic (search, isbn, image, book, series, settings)
-│   ├── routes/                  # Flask blueprints (main, books, scan, admin)
-│   ├── templates/                 # Jinja2 (layout, pages, HTMX fragments, admin)
-│   └── static/                      # JS (htmx/alpine/scanner) and stored covers
-└── data/                     # created on first Docker launch (database + covers), not versioned
+│   ├── translations/          # UI strings, one flat JSON file per language
+│   ├── models/                  # Book, Author, Publisher, Series, Tag, Location, Setting
+│   ├── services/                  # business logic (search, isbn, image, book, series, settings, i18n)
+│   ├── routes/                      # Flask blueprints (main, books, scan, admin)
+│   ├── templates/                     # Jinja2 (layout, pages, HTMX fragments, admin)
+│   └── static/                          # JS (htmx/alpine/scanner) and stored covers
+├── tests/                # pytest suite (services + routes)
+└── data/                 # created on first Docker launch (database + covers), not versioned
 ```
 
 ## Adding a new feature
