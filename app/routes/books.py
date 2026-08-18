@@ -4,8 +4,8 @@ from app.extensions import db
 from app.models import Author, Book, Location, Publisher, Series, Tag
 from app.services import book_service, image_service
 from app.services.i18n_service import t
-from app.services.settings_service import get_setting
 from app.services.search_service import group_by_series, search_books
+from app.services.settings_service import get_setting
 
 books_bp = Blueprint("books", __name__)
 

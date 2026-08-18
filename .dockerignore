@@ -8,3 +8,8 @@ instance/*.sqlite3
 .venv
 venv/
 *.md
+.github/
+tests/
+.pytest_cache/
+requirements-dev.txt
+pyproject.toml

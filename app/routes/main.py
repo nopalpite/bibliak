@@ -2,8 +2,8 @@ from flask import Blueprint, current_app, redirect, render_template, request, se
 
 from app.extensions import db
 from app.models import Book, Location, Publisher, Series, Tag
-from app.services.settings_service import get_setting
 from app.services.search_service import group_by_series, search_books
+from app.services.settings_service import get_setting
 
 main_bp = Blueprint("main", __name__)
 

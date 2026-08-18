@@ -18,11 +18,10 @@ def create_app(config_class=Config):
 
     # Explicit model import so they're known to Alembic/Flask-Migrate
     from . import models  # noqa: F401
-
-    from .routes.main import main_bp
-    from .routes.books import books_bp
-    from .routes.scan import scan_bp
     from .routes.admin import admin_bp
+    from .routes.books import books_bp
+    from .routes.main import main_bp
+    from .routes.scan import scan_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(books_bp, url_prefix="/books")

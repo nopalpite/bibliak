@@ -1,10 +1,10 @@
 from .author import Author
+from .book import Book, book_author, book_tag
+from .location import Location
 from .publisher import Publisher
 from .series import Series
-from .tag import Tag
-from .location import Location
 from .setting import Setting
-from .book import Book, book_author, book_tag
+from .tag import Tag
 
 __all__ = [
     "Author",
