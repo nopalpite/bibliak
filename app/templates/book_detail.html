@@ -1,0 +1,115 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ book.title }} — Ma Bibliothèque{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <a href="{{ url_for('main.index') }}" class="inline-flex items-center gap-1.5 text-sm mb-6" style="color: var(--ink-muted);">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+    Retour à la collection
+  </a>
+
+  {% if image_error %}
+  <div class="card p-4 mb-6 text-sm" style="color: var(--accent);">
+    ⚠️ Couverture non enregistrée : {{ image_error }}
+  </div>
+  {% endif %}
+
+  <div class="grid sm:grid-cols-[220px_1fr] gap-8">
+    <div class="flex gap-3">
+      <span class="book-spine self-stretch"></span>
+      <div class="cover flex-1 aspect-[2/3] rounded-xl overflow-hidden" style="background: var(--surface-muted);">
+        {% if book.cover_image %}
+        <img src="{{ url_for('static', filename='covers/' + book.cover_image) }}" alt="Couverture de {{ book.title }}" class="w-full h-full object-cover">
+        {% else %}
+        <div class="w-full h-full flex items-center justify-center px-4 text-center">
+          <span class="font-display" style="color: var(--ink-muted);">{{ book.title }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div>
+      <span class="px-2 py-0.5 rounded-full text-xs" style="background: var(--accent-soft); color: var(--accent);">{{ book.item_type }}</span>
+      <h1 class="font-display text-3xl font-medium mt-2 mb-1">{{ book.title }}</h1>
+      {% if book.series %}
+      <p class="text-sm mb-4 flex items-center gap-2 {{ book.series.spine_color_class }}" style="color: var(--ink-muted);">
+        <span class="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style="background: var(--spine-base);"></span>
+        <a href="{{ url_for('main.series_detail', series_id=book.series.id) }}" class="hover:underline font-medium" style="color: var(--spine-base);">{{ book.series.name }}</a>{% if book.volume %} — Tome {{ book.volume }}{% endif %}
+      </p>
+      {% endif %}
+
+      <div class="flex items-center gap-3 mb-4">
+        <span class="text-xs font-semibold uppercase tracking-wide" style="color: var(--ink-muted);">Lecture</span>
+        <form method="post" action="{{ url_for('books.toggle_read', book_id=book.id) }}">
+          <button type="submit" class="px-3 py-1 rounded-full text-sm font-medium transition-colors"
+                  style="{{ 'background: var(--foliage-soft); color: var(--foliage);' if book.read else 'background: var(--surface-muted); color: var(--ink-muted);' }}">
+            {{ '✓ Lu' if book.read else 'À lire' }}
+          </button>
+        </form>
+      </div>
+
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm mb-6">
+        <div>
+          <dt style="color: var(--ink-muted);">Auteur(s)</dt>
+          <dd class="mt-0.5">{{ book.author_list or "—" }}</dd>
+        </div>
+        <div>
+          <dt style="color: var(--ink-muted);">Éditeur</dt>
+          <dd class="mt-0.5">{{ book.publisher.name if book.publisher else "—" }}</dd>
+        </div>
+        <div>
+          <dt style="color: var(--ink-muted);">Date de parution</dt>
+          <dd class="mt-0.5">{{ book.publication_date or "—" }}</dd>
+        </div>
+        <div>
+          <dt style="color: var(--ink-muted);">ISBN / EAN</dt>
+          <dd class="mt-0.5 font-code">{{ book.isbn or "—" }}</dd>
+        </div>
+        <div>
+          <dt style="color: var(--ink-muted);">État</dt>
+          <dd class="mt-0.5">{{ book.condition or "—" }}</dd>
+        </div>
+        <div>
+          <dt style="color: var(--ink-muted);">Emplacement</dt>
+          <dd class="mt-0.5">{{ book.location.label if book.location else "—" }}</dd>
+        </div>
+      </dl>
+
+      {% if book.tags %}
+      <div class="flex flex-wrap gap-1.5 mb-6">
+        {% for t in book.tags %}
+        <span class="px-2.5 py-1 rounded-full text-xs border" style="border-color: var(--border); color: var(--ink-muted);">{{ t.label }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if book.summary %}
+      <div class="mb-6">
+        <h2 class="text-xs font-semibold uppercase tracking-wide mb-1.5" style="color: var(--ink-muted);">Résumé</h2>
+        <p class="text-sm leading-relaxed">{{ book.summary }}</p>
+      </div>
+      {% endif %}
+
+      {% if book.personal_notes %}
+      <div class="mb-6 p-4 rounded-lg" style="background: var(--surface-muted);">
+        <h2 class="text-xs font-semibold uppercase tracking-wide mb-1.5" style="color: var(--ink-muted);">Notes personnelles</h2>
+        <p class="text-sm leading-relaxed">{{ book.personal_notes }}</p>
+      </div>
+      {% endif %}
+
+      <div class="flex items-center gap-3">
+        <a href="{{ url_for('books.edit', book_id=book.id) }}" class="btn-primary px-4 py-2 rounded-lg text-sm font-medium">
+          Modifier
+        </a>
+        <form method="post" action="{{ url_for('books.delete', book_id=book.id) }}"
+              onsubmit="return confirm('Supprimer définitivement « {{ book.title }} » de la collection ?');">
+          <button type="submit" class="px-4 py-2 rounded-lg text-sm border" style="border-color: var(--border); color: var(--ink-muted);">
+            Supprimer
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

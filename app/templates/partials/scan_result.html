@@ -1,0 +1,29 @@
+{% if error %}
+<div class="card p-5">
+  <p class="text-sm mb-3" {% if error_type == 'reseau' %}style="color: var(--accent);"{% endif %}>
+    {{ '⚠️ ' if error_type == 'reseau' }}{{ error }}
+  </p>
+  <a href="{{ url_for('books.new') }}{% if isbn %}?isbn={{ isbn }}{% endif %}"
+     class="btn-primary inline-block px-4 py-2 rounded-lg text-sm font-medium">
+    Ajouter manuellement
+  </a>
+</div>
+{% elif result %}
+<div class="card p-5 flex gap-4">
+  <div class="cover w-20 aspect-[2/3] rounded-lg overflow-hidden flex-shrink-0" style="background: var(--surface-muted);">
+    {% if result.image_url %}
+    <img src="{{ result.image_url }}" alt="" class="w-full h-full object-cover">
+    {% endif %}
+  </div>
+  <div class="flex-1">
+    <p class="text-xs mb-1" style="color: var(--ink-muted);">Trouvé via {{ result.source }}</p>
+    <p class="font-display text-lg font-medium mb-1">{{ result.title }}</p>
+    {% if result.authors %}
+    <p class="text-sm mb-3" style="color: var(--ink-muted);">{{ result.authors|join(', ') }}</p>
+    {% endif %}
+    <a href="{{ url_for('books.new') }}" class="btn-primary inline-block px-4 py-2 rounded-lg text-sm font-medium">
+      Compléter et ajouter à la collection
+    </a>
+  </div>
+</div>
+{% endif %}

@@ -1,53 +1,53 @@
 {% extends "layout.html" %}
 
-{% block titre %}Administration — Ma Bibliothèque{% endblock %}
+{% block title %}Administration — Ma Bibliothèque{% endblock %}
 
-{% block contenu %}
+{% block content %}
 <div class="max-w-4xl mx-auto">
-  <p class="etiquette mb-1">Réglages</p>
-  <h1 class="police-affichage text-3xl font-medium mb-1">Administration</h1>
+  <p class="kicker mb-1">Réglages</p>
+  <h1 class="font-display text-3xl font-medium mb-1">Administration</h1>
   <p class="text-sm mb-6" style="color: var(--ink-muted);">Paramètres de l'application, référentiels et sauvegarde de la collection.</p>
 
-  <div class="flex gap-1 p-1 rounded-lg mb-6 overflow-x-auto" style="background: var(--surface-muted);" id="barre-onglets-admin">
+  <div class="flex gap-1 p-1 rounded-lg mb-6 overflow-x-auto" style="background: var(--surface-muted);" id="admin-tabs-bar">
     <button
       type="button"
-      onclick="activerOngletAdmin(this, 'parametres')"
-      hx-get="{{ url_for('admin.onglet', nom='parametres') }}" hx-target="#contenu-admin"
-      class="onglet-admin px-4 py-2 rounded-md text-sm whitespace-nowrap transition-colors onglet-admin-actif"
-      data-onglet="parametres"
+      onclick="activateAdminTab(this, 'settings')"
+      hx-get="{{ url_for('admin.tab', name='settings') }}" hx-target="#admin-content"
+      class="admin-tab px-4 py-2 rounded-md text-sm whitespace-nowrap transition-colors admin-tab-active"
+      data-tab="settings"
     >Paramètres</button>
     <button
       type="button"
-      onclick="activerOngletAdmin(this, 'referentiels')"
-      hx-get="{{ url_for('admin.onglet', nom='referentiels') }}" hx-target="#contenu-admin"
-      class="onglet-admin px-4 py-2 rounded-md text-sm whitespace-nowrap transition-colors"
-      data-onglet="referentiels"
+      onclick="activateAdminTab(this, 'references')"
+      hx-get="{{ url_for('admin.tab', name='references') }}" hx-target="#admin-content"
+      class="admin-tab px-4 py-2 rounded-md text-sm whitespace-nowrap transition-colors"
+      data-tab="references"
     >Référentiels</button>
     <button
       type="button"
-      onclick="activerOngletAdmin(this, 'export_import')"
-      hx-get="{{ url_for('admin.onglet', nom='export_import') }}" hx-target="#contenu-admin"
-      class="onglet-admin px-4 py-2 rounded-md text-sm whitespace-nowrap transition-colors"
-      data-onglet="export_import"
+      onclick="activateAdminTab(this, 'export_import')"
+      hx-get="{{ url_for('admin.tab', name='export_import') }}" hx-target="#admin-content"
+      class="admin-tab px-4 py-2 rounded-md text-sm whitespace-nowrap transition-colors"
+      data-tab="export_import"
     >Import / Export</button>
   </div>
 
-  <div id="contenu-admin">
-    {% include "admin/parametres.html" %}
+  <div id="admin-content">
+    {% include "admin/settings.html" %}
   </div>
 </div>
 
 <style>
-  .onglet-admin { color: var(--ink-muted); }
-  .onglet-admin-actif { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .admin-tab { color: var(--ink-muted); }
+  .admin-tab-active { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 </style>
 
 <script>
-  function activerOngletAdmin(bouton, nom) {
-    document.querySelectorAll('#barre-onglets-admin .onglet-admin').forEach((b) => {
-      b.classList.remove('onglet-admin-actif');
+  function activateAdminTab(button, name) {
+    document.querySelectorAll('#admin-tabs-bar .admin-tab').forEach((b) => {
+      b.classList.remove('admin-tab-active');
     });
-    bouton.classList.add('onglet-admin-actif');
+    button.classList.add('admin-tab-active');
   }
 </script>
 {% endblock %}

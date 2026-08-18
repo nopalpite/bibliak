@@ -77,9 +77,9 @@ biblio-app/
 ├── app/
 │   ├── config.py            # configuration (chemins, clés API...)
 │   ├── extensions.py         # SQLAlchemy, Migrate
-│   ├── models/                # Ouvrage, Auteur, Editeur, Serie, Tag, Emplacement, Parametre
-│   ├── services/               # logique métier (recherche, ISBN, images, ouvrages, paramètres)
-│   ├── routes/                  # Blueprints Flask (main, ouvrages, scan, admin)
+│   ├── models/                # Book, Author, Publisher, Series, Tag, Location, Setting
+│   ├── services/               # logique métier (search, isbn, image, book, series, settings)
+│   ├── routes/                  # Blueprints Flask (main, books, scan, admin)
 │   ├── templates/                 # Jinja2 (layout, pages, fragments HTMX, admin)
 │   └── static/                      # JS (htmx/alpine/scanner) et couvertures stockées
 └── data/                     # créé au premier lancement Docker (base + couvertures), non versionné

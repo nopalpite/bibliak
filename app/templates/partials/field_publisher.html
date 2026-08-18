@@ -1,0 +1,37 @@
+<div id="publisher-field-container">
+  <label class="block text-xs mb-1" style="color: var(--ink-muted);">Éditeur</label>
+  <div class="flex gap-2">
+    <select name="publisher_id" class="flex-1 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+      <option value="">Aucun éditeur</option>
+      {% for p in publishers %}
+      <option value="{{ p.id }}" {{ 'selected' if values.publisher_id == p.id }}>{{ p.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="button" onclick="showCreatePublisher()"
+            class="px-3 py-2 rounded-lg border text-sm flex-shrink-0" style="border-color: var(--border); color: var(--ink-muted);"
+            title="Créer un nouvel éditeur">
+      + Éditeur
+    </button>
+  </div>
+
+  {% if message %}
+  <p class="text-xs mt-1.5" style="color: {{ 'var(--accent)' if error else 'var(--foliage)' }};">
+    {{ '⚠️' if error else '✓' }} {{ message }}
+  </p>
+  {% endif %}
+
+  <div id="publisher-creation" class="{{ '' if error else 'hidden' }} mt-2 space-y-2">
+    <input
+      type="text" name="name" id="new-publisher-name" placeholder="Nom du nouvel éditeur"
+      value="{{ entered_name or '' }}"
+      autocomplete="off" autocorrect="off"
+      onkeydown="if (event.key === 'Enter') { event.preventDefault(); quickCreatePublisher(); }"
+      class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+    <button
+      type="button"
+      id="create-publisher-button"
+      class="btn-primary w-full px-3 py-2.5 rounded-lg text-sm"
+    >Créer l'éditeur</button>
+    <p class="text-xs" style="color: var(--ink-muted);">Astuce : la touche Entrée du clavier fonctionne aussi.</p>
+  </div>
+</div>

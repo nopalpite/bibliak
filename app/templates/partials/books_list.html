@@ -1,13 +1,13 @@
-{% if not ouvrages %}
+{% if not books %}
 <div class="text-center py-20 rounded-2xl border border-dashed" style="border-color: var(--border);">
   <svg class="mx-auto mb-4" width="52" height="34" viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ink-muted);">
     <path d="M32 8C27 4 18 3 8 5v27c10-2 19-1 24 3M32 8c5-4 14-5 24-3v27c-10-2-19-1-24 3M32 8v30"/>
   </svg>
-  <p class="police-affichage text-xl mb-2">Aucun ouvrage ne correspond</p>
+  <p class="font-display text-xl mb-2">Aucun ouvrage ne correspond</p>
   <p class="text-sm" style="color: var(--ink-muted);">Essayez d'élargir votre recherche, ou ajoutez un nouvel ouvrage à la collection.</p>
 </div>
 {% else %}
-<div class="carte overflow-hidden">
+<div class="card overflow-hidden">
   <table class="w-full text-sm">
     <thead>
       <tr class="text-left border-b" style="border-color: var(--border); color: var(--ink-muted);">
@@ -22,22 +22,22 @@
       </tr>
     </thead>
     <tbody>
-      {% for o in ouvrages %}
-      <tr class="border-b last:border-0 hover:bg-black/[.02] cursor-pointer" style="border-color: var(--border);" onclick="window.location='{{ url_for('ouvrages.detail', ouvrage_id=o.id) }}'">
-        <td class="pl-4"><span class="dos-de-livre h-6 inline-block {{ o.serie.classe_couleur if o.serie }}"></span></td>
-        <td class="px-2 py-3 font-medium">{{ o.titre }}</td>
+      {% for b in books %}
+      <tr class="border-b last:border-0 hover:bg-black/[.02] cursor-pointer" style="border-color: var(--border);" onclick="window.location='{{ url_for('books.detail', book_id=b.id) }}'">
+        <td class="pl-4"><span class="book-spine h-6 inline-block {{ b.series.spine_color_class if b.series }}"></span></td>
+        <td class="px-2 py-3 font-medium">{{ b.title }}</td>
         <td class="px-4 py-3 hidden md:table-cell" style="color: var(--ink-muted);">
-          {%- if o.serie -%}{{ o.serie.nom }}{% if o.tome %} — T{{ o.tome }}{% endif %}{%- else -%}—{%- endif -%}
+          {%- if b.series -%}{{ b.series.name }}{% if b.volume %} — T{{ b.volume }}{% endif %}{%- else -%}—{%- endif -%}
         </td>
-        <td class="px-4 py-3 hidden lg:table-cell" style="color: var(--ink-muted);">{{ o.liste_auteurs or "—" }}</td>
-        <td class="px-4 py-3 hidden lg:table-cell" style="color: var(--ink-muted);">{{ o.editeur.nom if o.editeur else "—" }}</td>
+        <td class="px-4 py-3 hidden lg:table-cell" style="color: var(--ink-muted);">{{ b.author_list or "—" }}</td>
+        <td class="px-4 py-3 hidden lg:table-cell" style="color: var(--ink-muted);">{{ b.publisher.name if b.publisher else "—" }}</td>
         <td class="px-4 py-3 hidden sm:table-cell">
-          <span class="px-2 py-0.5 rounded-full text-xs" style="background: var(--accent-soft); color: var(--accent);">{{ o.type_ouvrage }}</span>
+          <span class="px-2 py-0.5 rounded-full text-xs" style="background: var(--accent-soft); color: var(--accent);">{{ b.item_type }}</span>
         </td>
         <td class="px-4 py-3 hidden md:table-cell">
-          <span class="px-2 py-0.5 rounded-full text-xs" style="{{ 'background: var(--feuillage-soft); color: var(--feuillage);' if o.lu else 'color: var(--ink-muted);' }}">{{ o.statut_lecture }}</span>
+          <span class="px-2 py-0.5 rounded-full text-xs" style="{{ 'background: var(--foliage-soft); color: var(--foliage);' if b.read else 'color: var(--ink-muted);' }}">{{ b.reading_status }}</span>
         </td>
-        <td class="px-4 py-3 hidden xl:table-cell" style="color: var(--ink-muted);">{{ o.emplacement.libelle if o.emplacement else "—" }}</td>
+        <td class="px-4 py-3 hidden xl:table-cell" style="color: var(--ink-muted);">{{ b.location.label if b.location else "—" }}</td>
       </tr>
       {% endfor %}
     </tbody>

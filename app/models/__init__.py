@@ -1,19 +1,19 @@
-from .auteur import Auteur
-from .editeur import Editeur
-from .serie import Serie
+from .author import Author
+from .publisher import Publisher
+from .series import Series
 from .tag import Tag
-from .emplacement import Emplacement
-from .parametre import Parametre
-from .ouvrage import Ouvrage, ouvrage_auteur, ouvrage_tag
+from .location import Location
+from .setting import Setting
+from .book import Book, book_author, book_tag
 
 __all__ = [
-    "Auteur",
-    "Editeur",
-    "Serie",
+    "Author",
+    "Publisher",
+    "Series",
     "Tag",
-    "Emplacement",
-    "Parametre",
-    "Ouvrage",
-    "ouvrage_auteur",
-    "ouvrage_tag",
+    "Location",
+    "Setting",
+    "Book",
+    "book_author",
+    "book_tag",
 ]

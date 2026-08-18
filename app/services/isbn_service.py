@@ -1,31 +1,31 @@
-"""Récupération des métadonnées d'un ouvrage à partir de son ISBN/EAN.
+"""Retrieval of a book's metadata from its ISBN/EAN.
 
-Deux sources sont interrogées, avec repli automatique de l'une vers l'autre :
-- Open Library (gratuite, sans clé)
-- Google Books (gratuite, clé optionnelle pour des quotas plus élevés)
+Two sources are queried, with automatic fallback from one to the other:
+- Open Library (free, no key)
+- Google Books (free, optional key for higher quotas)
 
-Les BD et mangas sont souvent mal référencés dans ces bases généralistes :
-le résultat doit donc toujours être considéré comme un pré-remplissage,
-jamais comme une vérité absolue.
+Comics and manga are often poorly referenced in these general-purpose
+databases: the result must therefore always be treated as a pre-fill,
+never as an absolute truth.
 """
 
 import requests
 from flask import current_app
 
-DELAI_MAX = 6  # secondes
+TIMEOUT = 6  # seconds
 
 
-def _nettoyer_isbn(isbn):
+def _clean_isbn(isbn):
     return isbn.strip().replace("-", "").replace(" ", "")
 
 
-def _en_tete_http():
-    """Construit l'en-tête User-Agent envoyé à chaque appel.
+def _http_headers():
+    """Builds the User-Agent header sent with every call.
 
-    Open Library recommande explicitement de s'identifier (nom de
-    l'application + contact) : les requêtes identifiées bénéficient d'une
-    limite de débit 3x plus généreuse (3 req/s au lieu d'1 req/s). Le contact
-    se configure via la variable d'environnement CONTACT_INFO (voir .env).
+    Open Library explicitly recommends identifying yourself (app name +
+    contact): identified requests benefit from a 3x more generous rate limit
+    (3 req/s instead of 1 req/s). The contact is configured via the
+    CONTACT_INFO environment variable (see .env).
     """
     contact = (current_app.config.get("CONTACT_INFO") or "").strip()
     agent = "MaBibliotheque/1.0 (application locale de gestion de collection)"
@@ -34,82 +34,82 @@ def _en_tete_http():
     return {"User-Agent": agent}
 
 
-def _depuis_open_library(isbn):
+def _from_open_library(isbn):
     url = "https://openlibrary.org/api/books"
     params = {"bibkeys": f"ISBN:{isbn}", "format": "json", "jscmd": "data"}
-    reponse = requests.get(url, params=params, headers=_en_tete_http(), timeout=DELAI_MAX)
-    reponse.raise_for_status()
-    donnees = reponse.json().get(f"ISBN:{isbn}")
-    if not donnees:
+    response = requests.get(url, params=params, headers=_http_headers(), timeout=TIMEOUT)
+    response.raise_for_status()
+    data = response.json().get(f"ISBN:{isbn}")
+    if not data:
         return None
 
-    auteurs = [a.get("name") for a in donnees.get("authors", []) if a.get("name")]
-    editeurs = [e.get("name") for e in donnees.get("publishers", []) if e.get("name")]
-    couverture = donnees.get("cover", {}) or {}
+    authors = [a.get("name") for a in data.get("authors", []) if a.get("name")]
+    publishers = [p.get("name") for p in data.get("publishers", []) if p.get("name")]
+    cover = data.get("cover", {}) or {}
 
     return {
-        "titre": donnees.get("title"),
-        "auteurs": auteurs,
-        "editeur": editeurs[0] if editeurs else None,
-        "date_parution": donnees.get("publish_date"),
-        "resume": donnees.get("subtitle"),
-        "image_url": couverture.get("large") or couverture.get("medium"),
+        "title": data.get("title"),
+        "authors": authors,
+        "publisher": publishers[0] if publishers else None,
+        "publication_date": data.get("publish_date"),
+        "summary": data.get("subtitle"),
+        "image_url": cover.get("large") or cover.get("medium"),
         "source": "Open Library",
     }
 
 
-def _depuis_google_books(isbn, cle_api=None):
+def _from_google_books(isbn, api_key=None):
     url = "https://www.googleapis.com/books/v1/volumes"
     params = {"q": f"isbn:{isbn}"}
-    if cle_api:
-        params["key"] = cle_api
-    reponse = requests.get(url, params=params, headers=_en_tete_http(), timeout=DELAI_MAX)
-    reponse.raise_for_status()
-    items = reponse.json().get("items")
+    if api_key:
+        params["key"] = api_key
+    response = requests.get(url, params=params, headers=_http_headers(), timeout=TIMEOUT)
+    response.raise_for_status()
+    items = response.json().get("items")
     if not items:
         return None
 
     info = items[0].get("volumeInfo", {})
-    liens_images = info.get("imageLinks", {}) or {}
+    image_links = info.get("imageLinks", {}) or {}
 
     return {
-        "titre": info.get("title"),
-        "auteurs": info.get("authors", []),
-        "editeur": info.get("publisher"),
-        "date_parution": info.get("publishedDate"),
-        "resume": info.get("description"),
-        "image_url": liens_images.get("thumbnail") or liens_images.get("smallThumbnail"),
+        "title": info.get("title"),
+        "authors": info.get("authors", []),
+        "publisher": info.get("publisher"),
+        "publication_date": info.get("publishedDate"),
+        "summary": info.get("description"),
+        "image_url": image_links.get("thumbnail") or image_links.get("smallThumbnail"),
         "source": "Google Books",
     }
 
 
-def rechercher_par_isbn(isbn, api_prioritaire="openlibrary", cle_api_google=None):
-    """Interroge les deux sources dans l'ordre de priorité choisi.
+def search_by_isbn(isbn, priority_api="openlibrary", google_api_key=None):
+    """Queries both sources in the chosen priority order.
 
-    Renvoie un tuple (resultat, sources_en_erreur) :
-    - resultat : le premier résultat exploitable trouvé, ou None
-    - sources_en_erreur : noms des sources n'ayant pas pu être contactées
-      (timeout, erreur réseau, erreur HTTP) — à distinguer d'une source ayant
-      répondu normalement mais ne connaissant pas cet ISBN.
+    Returns a tuple (result, failed_sources):
+    - result: the first usable result found, or None
+    - failed_sources: names of sources that could not be contacted
+      (timeout, network error, HTTP error) — as distinguished from a source
+      that responded normally but doesn't know this ISBN.
     """
-    isbn_normalise = _nettoyer_isbn(isbn)
+    normalized_isbn = _clean_isbn(isbn)
 
     sources = [
-        ("Open Library", _depuis_open_library),
-        ("Google Books", lambda i: _depuis_google_books(i, cle_api_google)),
+        ("Open Library", _from_open_library),
+        ("Google Books", lambda i: _from_google_books(i, google_api_key)),
     ]
-    if api_prioritaire == "googlebooks":
+    if priority_api == "googlebooks":
         sources.reverse()
 
-    sources_en_erreur = []
-    for nom_source, fonction in sources:
+    failed_sources = []
+    for source_name, function in sources:
         try:
-            resultat = fonction(isbn_normalise)
+            result = function(normalized_isbn)
         except requests.RequestException:
-            sources_en_erreur.append(nom_source)
+            failed_sources.append(source_name)
             continue
-        if resultat and resultat.get("titre"):
-            resultat["isbn"] = isbn_normalise
-            return resultat, sources_en_erreur
+        if result and result.get("title"):
+            result["isbn"] = normalized_isbn
+            return result, failed_sources
 
-    return None, sources_en_erreur
+    return None, failed_sources

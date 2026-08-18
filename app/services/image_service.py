@@ -1,8 +1,7 @@
-"""Téléchargement, upload et redimensionnement des couvertures d'ouvrages.
+"""Downloading, uploading and resizing book covers.
 
-Toutes les images sont converties en JPEG et redimensionnées avant d'être
-stockées dans app/static/covers, sous un nom de fichier généré (uuid) pour
-éviter toute collision.
+All images are converted to JPEG and resized before being stored in
+app/static/covers, under a generated (uuid) filename to avoid any collision.
 """
 
 import uuid
@@ -13,14 +12,13 @@ import requests
 from flask import current_app
 from PIL import Image, ImageOps
 
-DELAI_MAX = 8  # secondes
+TIMEOUT = 8  # seconds
 
-# De nombreux sites bloquent (403, page de remplacement, redirection) les
-# requêtes dont l'en-tête User-Agent ne ressemble pas à un navigateur — sans
-# ça, une image qui s'affiche très bien dans l'aperçu du navigateur (qui, lui,
-# envoie un vrai User-Agent) peut échouer silencieusement au téléchargement
-# côté serveur, qui n'en envoyait aucun.
-EN_TETE_TELECHARGEMENT = {
+# Many sites block (403, replacement page, redirect) requests whose
+# User-Agent header doesn't look like a browser — without this, an image
+# that displays perfectly fine in the browser preview (which sends a real
+# User-Agent) can silently fail to download server-side, which sent none.
+DOWNLOAD_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -29,69 +27,69 @@ EN_TETE_TELECHARGEMENT = {
 }
 
 
-def _dossier_covers():
+def _covers_dir():
     return Path(current_app.config["COVERS_DIR"])
 
 
-def _nom_fichier_unique():
+def _unique_filename():
     return f"{uuid.uuid4().hex}.jpg"
 
 
-def _redimensionner_et_sauver(image):
-    # Les photos prises au smartphone stockent l'orientation réelle dans une
-    # métadonnée EXIF plutôt que de faire pivoter les pixels eux-mêmes ;
-    # Image.open() ne l'applique jamais automatiquement, d'où les couvertures
-    # basculées à 90°/180° une fois enregistrées si on ne le fait pas ici.
+def _resize_and_save(image):
+    # Smartphone photos store the actual orientation in EXIF metadata rather
+    # than rotating the pixels themselves; Image.open() never applies it
+    # automatically, hence covers ending up flipped 90°/180° once saved if
+    # this isn't done here.
     image = ImageOps.exif_transpose(image)
     image = image.convert("RGB")
-    largeur_max, hauteur_max = current_app.config["COVER_MAX_SIZE"]
-    image.thumbnail((largeur_max, hauteur_max))
+    max_width, max_height = current_app.config["COVER_MAX_SIZE"]
+    image.thumbnail((max_width, max_height))
 
-    nom_fichier = _nom_fichier_unique()
-    chemin = _dossier_covers() / nom_fichier
-    image.save(chemin, "JPEG", quality=88)
-    return nom_fichier
+    filename = _unique_filename()
+    path = _covers_dir() / filename
+    image.save(path, "JPEG", quality=88)
+    return filename
 
 
-def telecharger_couverture(url):
-    """Télécharge une image depuis une URL distante (ex. Open Library / Google
-    Books, ou lien collé manuellement). Renvoie (nom_fichier, erreur) : l'un
-    des deux est toujours None."""
+def download_cover(url):
+    """Downloads an image from a remote URL (e.g. Open Library / Google
+    Books, or a manually pasted link). Returns (filename, error): exactly
+    one of the two is always None."""
     if not url:
         return None, None
 
     try:
-        reponse = requests.get(url, headers=EN_TETE_TELECHARGEMENT, timeout=DELAI_MAX)
-        reponse.raise_for_status()
+        response = requests.get(url, headers=DOWNLOAD_HEADERS, timeout=TIMEOUT)
+        response.raise_for_status()
     except requests.RequestException as e:
         return None, f"Le lien n'a pas pu être téléchargé ({e.__class__.__name__})."
 
-    type_contenu = reponse.headers.get("Content-Type", "")
-    if type_contenu.startswith("text/html"):
+    content_type = response.headers.get("Content-Type", "")
+    if content_type.startswith("text/html"):
         return None, "Ce lien pointe vers une page web, pas directement vers un fichier image."
 
     try:
-        image = Image.open(BytesIO(reponse.content))
-        image.load()  # force le décodage complet ici pour détecter un format non supporté
+        image = Image.open(BytesIO(response.content))
+        image.load()  # force full decoding here to detect an unsupported format
     except Exception:
         return None, "Le format de cette image n'a pas pu être lu (fichier corrompu ou format non supporté)."
 
-    return _redimensionner_et_sauver(image), None
+    return _resize_and_save(image), None
 
 
-def sauvegarder_upload(fichier_werkzeug):
-    """Sauvegarde une image envoyée via formulaire (upload classique ou photo prise sur mobile)."""
+def save_upload(werkzeug_file):
+    """Saves an image sent via form (regular upload or a photo taken on mobile)."""
     try:
-        image = Image.open(fichier_werkzeug.stream)
+        image = Image.open(werkzeug_file.stream)
     except Exception:
         return None
 
-    return _redimensionner_et_sauver(image)
+    return _resize_and_save(image)
 
 
-def supprimer_couverture(nom_fichier):
-    if not nom_fichier:
+def delete_cover(filename):
+    if not filename:
         return
-    chemin = _dossier_covers() / nom_fichier
-    if chemin.exists():
-        chemin.unlink()
+    path = _covers_dir() / filename
+    if path.exists():
+        path.unlink()

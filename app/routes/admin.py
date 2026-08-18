@@ -4,195 +4,196 @@ from io import BytesIO
 from flask import Blueprint, render_template, request, send_file
 
 from app.extensions import db
-from app.models import Editeur, Emplacement, Ouvrage, Serie, Tag
-from app.services import ouvrage_service, parametre_service
+from app.models import Book, Location, Publisher, Series, Tag
+from app.services import book_service, settings_service
 
 admin_bp = Blueprint("admin", __name__)
 
-# Référentiels "relationnels" gérables génériquement (modèle, champ texte)
-MODELES_REFERENTIELS = {
-    "editeurs": (Editeur, "nom"),
-    "series": (Serie, "nom"),
-    "tags": (Tag, "libelle"),
-    "emplacements": (Emplacement, "libelle"),
+# "Relational" reference data manageable generically (model, text field)
+REFERENCE_MODELS = {
+    "publishers": (Publisher, "name"),
+    "series": (Series, "name"),
+    "tags": (Tag, "label"),
+    "locations": (Location, "label"),
 }
 
-# Référentiels "listes simples" stockés dans la table Parametre
-LISTES_PARAMETRABLES = ("types_ouvrages", "etats_ouvrages")
+# "Simple list" reference data stored in the Setting table
+CONFIGURABLE_LISTS = ("item_types", "conditions")
 
 
-def _contexte_parametres():
+def _settings_context():
     return {
-        "api_prioritaire": parametre_service.get_parametre("api_prioritaire"),
-        "vue_par_defaut": parametre_service.get_parametre("vue_par_defaut"),
-        "detection_doublons": parametre_service.get_parametre("detection_doublons"),
-        "choix_detection_doublons": parametre_service.CHOIX_DETECTION_DOUBLONS,
+        "priority_api": settings_service.get_setting("priority_api"),
+        "default_view": settings_service.get_setting("default_view"),
+        "duplicate_detection": settings_service.get_setting("duplicate_detection"),
+        "duplicate_detection_choices": settings_service.DUPLICATE_DETECTION_CHOICES,
     }
 
 
-def _contexte_referentiels():
+def _references_context():
     return {
-        "types_ouvrages": parametre_service.get_parametre("types_ouvrages", []),
-        "etats_ouvrages": parametre_service.get_parametre("etats_ouvrages", []),
-        "editeurs": Editeur.query.order_by(Editeur.nom).all(),
-        "series": Serie.query.order_by(Serie.nom).all(),
-        "tags": Tag.query.order_by(Tag.libelle).all(),
-        "emplacements": Emplacement.query.order_by(Emplacement.libelle).all(),
+        "item_types": settings_service.get_setting("item_types", []),
+        "conditions": settings_service.get_setting("conditions", []),
+        "publishers": Publisher.query.order_by(Publisher.name).all(),
+        "series": Series.query.order_by(Series.name).all(),
+        "tags": Tag.query.order_by(Tag.label).all(),
+        "locations": Location.query.order_by(Location.label).all(),
     }
 
 
-def _contexte_export_import(message=None):
-    return {"nb_ouvrages": Ouvrage.query.count(), "message": message}
+def _export_import_context(message=None):
+    return {"book_count": Book.query.count(), "message": message}
 
 
-CONTEXTES_ONGLETS = {
-    "parametres": _contexte_parametres,
-    "referentiels": _contexte_referentiels,
-    "export_import": _contexte_export_import,
+TAB_CONTEXTS = {
+    "settings": _settings_context,
+    "references": _references_context,
+    "export_import": _export_import_context,
 }
 
 
 @admin_bp.route("/")
-def accueil():
+def home():
     return render_template(
-        "admin/layout_admin.html", onglet_actif="parametres", **_contexte_parametres()
+        "admin/layout_admin.html", active_tab="settings", **_settings_context()
     )
 
 
-@admin_bp.route("/onglet/<nom>")
-def onglet(nom):
-    """Chargement d'un onglet en HTMX, sans rechargement de la page."""
-    if nom not in CONTEXTES_ONGLETS:
-        nom = "parametres"
-    return render_template(f"admin/{nom}.html", **CONTEXTES_ONGLETS[nom]())
+@admin_bp.route("/tab/<name>")
+def tab(name):
+    """Loads a tab via HTMX, without reloading the page."""
+    if name not in TAB_CONTEXTS:
+        name = "settings"
+    return render_template(f"admin/{name}.html", **TAB_CONTEXTS[name]())
 
 
-# --- Paramètres généraux ---
+# --- General settings ---
 
-@admin_bp.route("/parametres", methods=["POST"])
-def sauvegarder_parametres():
-    parametre_service.set_parametre("api_prioritaire", request.form.get("api_prioritaire"))
-    parametre_service.set_parametre("vue_par_defaut", request.form.get("vue_par_defaut"))
-    parametre_service.set_parametre("detection_doublons", request.form.get("detection_doublons"))
-    return render_template("admin/parametres.html", **_contexte_parametres())
-
-
-# --- Référentiels "listes simples" : types et états d'ouvrage ---
-
-@admin_bp.route("/referentiels/liste/<cle>/ajouter", methods=["POST"])
-def ajouter_valeur_liste(cle):
-    if cle in LISTES_PARAMETRABLES:
-        valeur = request.form.get("valeur", "").strip()
-        liste = parametre_service.get_parametre(cle, [])
-        if valeur and valeur not in liste:
-            liste.append(valeur)
-            parametre_service.set_parametre(cle, liste)
-    return render_template("admin/referentiels.html", **_contexte_referentiels())
+@admin_bp.route("/settings", methods=["POST"])
+def save_settings():
+    settings_service.set_setting("priority_api", request.form.get("priority_api"))
+    settings_service.set_setting("default_view", request.form.get("default_view"))
+    settings_service.set_setting("duplicate_detection", request.form.get("duplicate_detection"))
+    return render_template("admin/settings.html", **_settings_context())
 
 
-@admin_bp.route("/referentiels/liste/<cle>/supprimer", methods=["POST"])
-def supprimer_valeur_liste(cle):
-    if cle in LISTES_PARAMETRABLES:
-        valeur = request.form.get("valeur", "").strip()
-        liste = parametre_service.get_parametre(cle, [])
-        if valeur in liste:
-            liste.remove(valeur)
-            parametre_service.set_parametre(cle, liste)
-    return render_template("admin/referentiels.html", **_contexte_referentiels())
+# --- "Simple list" reference data: item types and conditions ---
+
+@admin_bp.route("/reference-lists/<key>/add", methods=["POST"])
+def add_list_value(key):
+    if key in CONFIGURABLE_LISTS:
+        value = request.form.get("value", "").strip()
+        values = settings_service.get_setting(key, [])
+        if value and value not in values:
+            values.append(value)
+            settings_service.set_setting(key, values)
+    return render_template("admin/references.html", **_references_context())
 
 
-# --- Référentiels relationnels : éditeurs, séries, tags, emplacements ---
+@admin_bp.route("/reference-lists/<key>/remove", methods=["POST"])
+def remove_list_value(key):
+    if key in CONFIGURABLE_LISTS:
+        value = request.form.get("value", "").strip()
+        values = settings_service.get_setting(key, [])
+        if value in values:
+            values.remove(value)
+            settings_service.set_setting(key, values)
+    return render_template("admin/references.html", **_references_context())
 
-@admin_bp.route("/referentiels/<nom_modele>/ajouter", methods=["POST"])
-def ajouter_referentiel(nom_modele):
-    if nom_modele in MODELES_REFERENTIELS:
-        modele, champ = MODELES_REFERENTIELS[nom_modele]
-        valeur = request.form.get("valeur", "").strip()
-        if valeur and not modele.query.filter_by(**{champ: valeur}).first():
-            db.session.add(modele(**{champ: valeur}))
+
+# --- Relational reference data: publishers, series, tags, locations ---
+
+@admin_bp.route("/references/<model_name>/add", methods=["POST"])
+def add_reference(model_name):
+    if model_name in REFERENCE_MODELS:
+        model, field = REFERENCE_MODELS[model_name]
+        value = request.form.get("value", "").strip()
+        if value and not model.query.filter_by(**{field: value}).first():
+            db.session.add(model(**{field: value}))
             db.session.commit()
-    return render_template("admin/referentiels.html", **_contexte_referentiels())
+    return render_template("admin/references.html", **_references_context())
 
 
-@admin_bp.route("/referentiels/<nom_modele>/<int:item_id>/renommer", methods=["POST"])
-def renommer_referentiel(nom_modele, item_id):
-    if nom_modele in MODELES_REFERENTIELS:
-        modele, champ = MODELES_REFERENTIELS[nom_modele]
-        item = modele.query.get_or_404(item_id)
-        nouvelle_valeur = request.form.get("valeur", "").strip()
-        if nouvelle_valeur:
-            setattr(item, champ, nouvelle_valeur)
+@admin_bp.route("/references/<model_name>/<int:item_id>/rename", methods=["POST"])
+def rename_reference(model_name, item_id):
+    if model_name in REFERENCE_MODELS:
+        model, field = REFERENCE_MODELS[model_name]
+        item = model.query.get_or_404(item_id)
+        new_value = request.form.get("value", "").strip()
+        if new_value:
+            setattr(item, field, new_value)
             db.session.commit()
-    return render_template("admin/referentiels.html", **_contexte_referentiels())
+    return render_template("admin/references.html", **_references_context())
 
 
-@admin_bp.route("/referentiels/<nom_modele>/<int:item_id>/supprimer", methods=["POST"])
-def supprimer_referentiel(nom_modele, item_id):
-    if nom_modele in MODELES_REFERENTIELS:
-        modele, _champ = MODELES_REFERENTIELS[nom_modele]
-        item = modele.query.get_or_404(item_id)
+@admin_bp.route("/references/<model_name>/<int:item_id>/delete", methods=["POST"])
+def delete_reference(model_name, item_id):
+    if model_name in REFERENCE_MODELS:
+        model, _field = REFERENCE_MODELS[model_name]
+        item = model.query.get_or_404(item_id)
         db.session.delete(item)
         db.session.commit()
-    return render_template("admin/referentiels.html", **_contexte_referentiels())
+    return render_template("admin/references.html", **_references_context())
 
 
-@admin_bp.route("/referentiels/<nom_modele>/fusionner", methods=["POST"])
-def fusionner_referentiel(nom_modele):
-    """Fusionne un référentiel en doublon vers un autre (utile après un import
-    ayant créé deux entrées légèrement différentes, ex. deux tags "SF" / "sf")."""
-    if nom_modele in MODELES_REFERENTIELS:
-        modele, _champ = MODELES_REFERENTIELS[nom_modele]
-        source = db.session.get(modele, request.form.get("source_id", type=int))
-        cible = db.session.get(modele, request.form.get("cible_id", type=int))
+@admin_bp.route("/references/<model_name>/merge", methods=["POST"])
+def merge_reference(model_name):
+    """Merges a duplicate reference entry into another (useful after an
+    import that created two slightly different entries, e.g. two tags "SF" /
+    "sf")."""
+    if model_name in REFERENCE_MODELS:
+        model, _field = REFERENCE_MODELS[model_name]
+        source = db.session.get(model, request.form.get("source_id", type=int))
+        target = db.session.get(model, request.form.get("target_id", type=int))
 
-        if source and cible and source.id != cible.id:
-            if nom_modele == "tags":
-                for ouvrage in list(source.ouvrages):
-                    if cible not in ouvrage.tags:
-                        ouvrage.tags.append(cible)
-                    ouvrage.tags.remove(source)
+        if source and target and source.id != target.id:
+            if model_name == "tags":
+                for book in list(source.books):
+                    if target not in book.tags:
+                        book.tags.append(target)
+                    book.tags.remove(source)
             else:
-                for ouvrage in list(source.ouvrages):
-                    if nom_modele == "editeurs":
-                        ouvrage.editeur = cible
-                    elif nom_modele == "series":
-                        ouvrage.serie = cible
-                    elif nom_modele == "emplacements":
-                        ouvrage.emplacement = cible
+                for book in list(source.books):
+                    if model_name == "publishers":
+                        book.publisher = target
+                    elif model_name == "series":
+                        book.series = target
+                    elif model_name == "locations":
+                        book.location = target
 
             db.session.delete(source)
             db.session.commit()
 
-    return render_template("admin/referentiels.html", **_contexte_referentiels())
+    return render_template("admin/references.html", **_references_context())
 
 
-# --- Export / Import (sauvegarde de la collection) ---
+# --- Export / Import (collection backup) ---
 
 @admin_bp.route("/export.json")
-def exporter_json():
-    ouvrages = Ouvrage.query.all()
-    donnees = [
+def export_json():
+    books = Book.query.all()
+    data = [
         {
-            "titre": o.titre,
-            "type_ouvrage": o.type_ouvrage,
-            "isbn": o.isbn,
-            "serie": o.serie.nom if o.serie else None,
-            "tome": o.tome,
-            "auteurs": [a.nom_complet for a in o.auteurs],
-            "editeur": o.editeur.nom if o.editeur else None,
-            "date_parution": o.date_parution,
-            "resume": o.resume,
-            "image_couverture": o.image_couverture,
-            "emplacement": o.emplacement.libelle if o.emplacement else None,
-            "etat": o.etat,
-            "notes_perso": o.notes_perso,
-            "lu": o.lu,
-            "tags": [t.libelle for t in o.tags],
+            "title": b.title,
+            "item_type": b.item_type,
+            "isbn": b.isbn,
+            "series": b.series.name if b.series else None,
+            "volume": b.volume,
+            "authors": [a.full_name for a in b.authors],
+            "publisher": b.publisher.name if b.publisher else None,
+            "publication_date": b.publication_date,
+            "summary": b.summary,
+            "cover_image": b.cover_image,
+            "location": b.location.label if b.location else None,
+            "condition": b.condition,
+            "personal_notes": b.personal_notes,
+            "read": b.read,
+            "tags": [t.label for t in b.tags],
         }
-        for o in ouvrages
+        for b in books
     ]
 
-    buffer = BytesIO(json.dumps(donnees, ensure_ascii=False, indent=2).encode("utf-8"))
+    buffer = BytesIO(json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8"))
     return send_file(
         buffer,
         mimetype="application/json",
@@ -202,45 +203,45 @@ def exporter_json():
 
 
 @admin_bp.route("/import", methods=["POST"])
-def importer_json():
-    fichier = request.files.get("fichier")
-    if not fichier:
-        return render_template("admin/export_import.html", **_contexte_export_import())
+def import_json():
+    file = request.files.get("file")
+    if not file:
+        return render_template("admin/export_import.html", **_export_import_context())
 
-    donnees = json.load(fichier.stream)
-    nb_importes = 0
-    nb_ignores = 0
+    data = json.load(file.stream)
+    imported_count = 0
+    skipped_count = 0
 
-    for item in donnees:
-        valeurs = {
-            "titre": item.get("titre", ""),
-            "type_ouvrage": item.get("type_ouvrage"),
+    for item in data:
+        values = {
+            "title": item.get("title", ""),
+            "item_type": item.get("item_type"),
             "isbn": item.get("isbn"),
-            "tome": item.get("tome"),
-            "date_parution": item.get("date_parution"),
-            "resume": item.get("resume"),
-            "etat": item.get("etat"),
-            "notes_perso": item.get("notes_perso"),
-            "lu": item.get("lu", (item.get("nombre_lectures", 0) or 0) >= 1),
-            "editeur": item.get("editeur"),
-            "serie": item.get("serie"),
-            "emplacement": item.get("emplacement"),
-            "auteurs": item.get("auteurs", []),
+            "volume": item.get("volume"),
+            "publication_date": item.get("publication_date"),
+            "summary": item.get("summary"),
+            "condition": item.get("condition"),
+            "personal_notes": item.get("personal_notes"),
+            "read": item.get("read", (item.get("read_count", 0) or 0) >= 1),
+            "publisher": item.get("publisher"),
+            "series": item.get("series"),
+            "location": item.get("location"),
+            "authors": item.get("authors", []),
             "tags": item.get("tags", []),
         }
 
-        # Applique la même politique de détection que le reste de l'application :
-        # un ouvrage déjà présent est ignoré plutôt que dupliqué.
-        doublon, _critere = ouvrage_service.trouver_doublon(valeurs)
-        if doublon:
-            nb_ignores += 1
+        # Applies the same detection policy as the rest of the application:
+        # a book already present is skipped rather than duplicated.
+        duplicate, _criterion = book_service.find_duplicate(values)
+        if duplicate:
+            skipped_count += 1
             continue
 
-        ouvrage_service.creer_ouvrage(valeurs)
-        nb_importes += 1
+        book_service.create_book(values)
+        imported_count += 1
 
-    message = f"{nb_importes} ouvrage(s) importé(s)."
-    if nb_ignores:
-        message += f" {nb_ignores} doublon(s) ignoré(s) (déjà présents dans la collection)."
+    message = f"{imported_count} ouvrage(s) importé(s)."
+    if skipped_count:
+        message += f" {skipped_count} doublon(s) ignoré(s) (déjà présents dans la collection)."
 
-    return render_template("admin/export_import.html", **_contexte_export_import(message))
+    return render_template("admin/export_import.html", **_export_import_context(message))

@@ -1,75 +1,75 @@
 from flask import Blueprint, current_app, redirect, render_template, request, send_file, url_for
 
 from app.extensions import db
-from app.models import Editeur, Emplacement, Ouvrage, Serie, Tag
-from app.services.parametre_service import get_parametre
-from app.services.recherche_service import grouper_par_serie, rechercher_ouvrages
+from app.models import Book, Location, Publisher, Series, Tag
+from app.services.settings_service import get_setting
+from app.services.search_service import group_by_series, search_books
 
 main_bp = Blueprint("main", __name__)
 
 
 @main_bp.route("/")
 def index():
-    vue = request.args.get("vue", get_parametre("vue_par_defaut", "grille"))
-    ouvrages = rechercher_ouvrages()
+    view = request.args.get("view", get_setting("default_view", "grid"))
+    books = search_books()
 
     return render_template(
         "index.html",
-        ouvrages=ouvrages,
-        groupes=grouper_par_serie(ouvrages),
-        vue=vue,
-        editeurs=Editeur.query.order_by(Editeur.nom).all(),
-        series=Serie.query.order_by(Serie.nom).all(),
-        tags=Tag.query.order_by(Tag.libelle).all(),
-        emplacements=Emplacement.query.order_by(Emplacement.libelle).all(),
-        types_ouvrages=get_parametre("types_ouvrages", []),
-        etats_ouvrages=get_parametre("etats_ouvrages", []),
+        books=books,
+        groups=group_by_series(books),
+        view=view,
+        publishers=Publisher.query.order_by(Publisher.name).all(),
+        series=Series.query.order_by(Series.name).all(),
+        tags=Tag.query.order_by(Tag.label).all(),
+        locations=Location.query.order_by(Location.label).all(),
+        item_types=get_setting("item_types", []),
+        conditions=get_setting("conditions", []),
     )
 
 
-@main_bp.route("/series/<int:serie_id>")
-def serie_detail(serie_id):
-    """Page "étagère" d'une série : tous les tomes possédés, triés, avec les
-    tomes manquants signalés en creux si le nombre total de tomes est connu."""
-    serie = Serie.query.get_or_404(serie_id)
-    ouvrages = (
-        Ouvrage.query.filter_by(serie_id=serie.id)
-        .order_by(Ouvrage.tome.is_(None), Ouvrage.tome)
+@main_bp.route("/series/<int:series_id>")
+def series_detail(series_id):
+    """Series "shelf" page: every owned volume, sorted, with missing volumes
+    flagged as gaps if the total volume count is known."""
+    series = Series.query.get_or_404(series_id)
+    books = (
+        Book.query.filter_by(series_id=series.id)
+        .order_by(Book.volume.is_(None), Book.volume)
         .all()
     )
 
-    tomes_possedes = {o.tome for o in ouvrages if o.tome is not None}
-    tomes_manquants = []
-    if serie.nb_tomes_prevu:
-        tomes_manquants = [n for n in range(1, serie.nb_tomes_prevu + 1) if n not in tomes_possedes]
+    owned_volumes = {b.volume for b in books if b.volume is not None}
+    missing_volumes = []
+    if series.expected_volume_count:
+        missing_volumes = [n for n in range(1, series.expected_volume_count + 1) if n not in owned_volumes]
 
     return render_template(
-        "serie_detail.html",
-        serie=serie,
-        ouvrages=ouvrages,
-        tomes_manquants=tomes_manquants,
+        "series_detail.html",
+        series=series,
+        books=books,
+        missing_volumes=missing_volumes,
     )
 
 
-@main_bp.route("/series/<int:serie_id>/nb-tomes", methods=["POST"])
-def definir_nb_tomes(serie_id):
-    """Renseigne (ou efface) le nombre total de tomes d'une série, pour
-    permettre à la page "étagère" de signaler les tomes manquants."""
-    serie = Serie.query.get_or_404(serie_id)
-    serie.nb_tomes_prevu = request.form.get("nb_tomes_prevu", type=int)
+@main_bp.route("/series/<int:series_id>/volume-count", methods=["POST"])
+def set_volume_count(series_id):
+    """Sets (or clears) a series' expected total volume count, so the
+    "shelf" page can flag missing volumes."""
+    series = Series.query.get_or_404(series_id)
+    series.expected_volume_count = request.form.get("expected_volume_count", type=int)
     db.session.commit()
-    return redirect(url_for("main.serie_detail", serie_id=serie.id))
+    return redirect(url_for("main.series_detail", series_id=series.id))
 
 
-@main_bp.route("/certificat")
-def telecharger_certificat():
-    """Sert le certificat HTTPS auto-signé pour installation comme profil de
-    confiance sur iOS (Safari ne débloque pas la caméra sur un certificat
-    simplement "accepté", il doit être installé et validé dans les réglages
-    du système)."""
-    chemin_certificat = current_app.config["CERT_DIR"] / "cert.pem"
+@main_bp.route("/certificate")
+def download_certificate():
+    """Serves the self-signed HTTPS certificate for installation as a
+    trusted profile on iOS (Safari doesn't unlock camera access on a
+    certificate simply "accepted"; it must be installed and validated in
+    system settings)."""
+    certificate_path = current_app.config["CERT_DIR"] / "cert.pem"
     return send_file(
-        chemin_certificat,
+        certificate_path,
         mimetype="application/x-x509-ca-cert",
         as_attachment=True,
         download_name="ma-bibliotheque.pem",

@@ -1,0 +1,51 @@
+{% if not groups %}
+<div class="text-center py-20 rounded-2xl border border-dashed" style="border-color: var(--border);">
+  <svg class="mx-auto mb-4" width="52" height="34" viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ink-muted);">
+    <path d="M32 8C27 4 18 3 8 5v27c10-2 19-1 24 3M32 8c5-4 14-5 24-3v27c-10-2-19-1-24 3M32 8v30"/>
+  </svg>
+  <p class="font-display text-xl mb-2">Aucun ouvrage ne correspond</p>
+  <p class="text-sm" style="color: var(--ink-muted);">Essayez d'élargir votre recherche, ou ajoutez un nouvel ouvrage à la collection.</p>
+</div>
+{% else %}
+<div class="space-y-10">
+  {% for group in groups %}
+  <section class="{{ group.series.spine_color_class if group.series }}">
+    <div class="flex items-baseline justify-between mb-3">
+      {% if group.series %}
+      <a href="{{ url_for('main.series_detail', series_id=group.series.id) }}" class="font-display text-lg font-medium hover:underline" style="color: var(--spine-base);">{{ group.series.name }}</a>
+      <p class="text-xs" style="color: var(--ink-muted);">
+        {{ group.books|length }} tome{{ 's' if group.books|length != 1 }}{% if group.series.expected_volume_count %} sur {{ group.series.expected_volume_count }} prévus{% endif %}
+      </p>
+      {% else %}
+      <span class="font-display text-lg font-medium" style="color: var(--ink-muted);">Sans série</span>
+      <p class="text-xs" style="color: var(--ink-muted);">{{ group.books|length }} ouvrage{{ 's' if group.books|length != 1 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="flex gap-3 overflow-x-auto pb-3">
+      {% for b in group.books %}
+      <a href="{{ url_for('books.detail', book_id=b.id) }}" class="flex-shrink-0 w-28 group">
+        <div class="cover aspect-[2/3] rounded-lg overflow-hidden mb-1.5 relative" style="background: var(--surface-muted);">
+          {% if b.read %}
+          <span class="absolute top-1.5 right-1.5 z-10 flex items-center justify-center rounded-full text-[10px] font-semibold w-5 h-5" style="background: var(--foliage); color: var(--surface);" title="Lu">
+            ✓
+          </span>
+          {% endif %}
+          {% if b.cover_image %}
+          <img src="{{ url_for('static', filename='covers/' + b.cover_image) }}" alt="Couverture de {{ b.title }}" class="w-full h-full object-cover transition-transform group-hover:scale-[1.03]" loading="lazy">
+          {% else %}
+          <div class="w-full h-full flex items-center justify-center px-2 text-center">
+            <span class="font-display text-xs" style="color: var(--ink-muted);">{{ b.title }}</span>
+          </div>
+          {% endif %}
+        </div>
+        <p class="text-xs truncate" title="{{ b.title }}">{% if b.volume %}Tome {{ b.volume }}{% else %}{{ b.title }}{% endif %}</p>
+      </a>
+      {% endfor %}
+    </div>
+    <!-- The shelf: tinted with the series' spine color -->
+    <div class="h-2 rounded-full -mt-1" style="background: linear-gradient(180deg, var(--spine-base, var(--border)), var(--spine-dark, var(--surface-muted))); box-shadow: 0 1px 2px rgba(34,31,27,.08);"></div>
+  </section>
+  {% endfor %}
+</div>
+{% endif %}

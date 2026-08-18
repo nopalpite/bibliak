@@ -1,0 +1,13 @@
+{% if duplicate %}
+<div class="{{ 'mt-2' if variant == 'live' else 'mb-4' }} rounded-lg border p-3 text-xs flex items-center justify-between gap-3 flex-wrap" style="background: var(--accent-soft); color: var(--accent); border-color: var(--border);">
+  <span>
+    {% set reason = "le même ISBN" if criterion == "isbn" else "le même titre et le même tome" %}
+    {% if variant == 'live' %}
+    ⚠️ Un ouvrage avec {{ reason }} existe déjà : <strong>{{ duplicate.title }}</strong>.
+    {% else %}
+    ⚠️ <strong>Doublon détecté :</strong> un ouvrage avec {{ reason }} existe déjà en collection (<strong>{{ duplicate.title }}</strong>). Vérifiez qu'il ne s'agit pas d'un ajout involontaire.
+    {% endif %}
+  </span>
+  <a href="{{ url_for('books.detail', book_id=duplicate.id) }}" target="_blank" class="underline whitespace-nowrap font-medium">Voir la fiche existante</a>
+</div>
+{% endif %}

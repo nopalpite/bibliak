@@ -1,0 +1,387 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ 'Modifier' if book else 'Ajouter' }} un ouvrage — Ma Bibliothèque{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+  <p class="kicker mb-1">{{ 'Fiche existante' if book else 'Nouvel ouvrage' }}</p>
+  <h1 class="font-display text-3xl font-medium mb-1">{{ 'Modifier' if book else 'Ajouter un ouvrage' }}</h1>
+  <p class="text-sm mb-6" style="color: var(--ink-muted);">
+    Tous les champs peuvent être créés à la volée (auteur, éditeur, série, tag, emplacement).
+  </p>
+
+  <div id="submission-duplicate-alert">
+    {% with variant = "submission" %}
+    {% include "partials/duplicate_alert.html" %}
+    {% endwith %}
+  </div>
+
+  <form id="book-form" method="post" enctype="multipart/form-data" class="space-y-6">
+    {% if duplicate %}<input type="hidden" name="ignore_duplicate" value="1">{% endif %}
+
+    <!-- Cover -->
+    <div class="card p-5">
+      <h2 class="text-sm font-semibold mb-3">Couverture</h2>
+      <div class="flex items-start gap-4">
+        <div class="cover w-24 aspect-[2/3] rounded-lg overflow-hidden flex-shrink-0" style="background: var(--surface-muted);" id="cover-preview-wrapper">
+          {% if values.image_url %}
+          <img id="cover-preview" src="{{ values.image_url }}" class="w-full h-full object-cover" onerror="this.remove();">
+          {% else %}
+          <div id="cover-preview" class="w-full h-full"></div>
+          {% endif %}
+        </div>
+        <div class="flex-1 space-y-3">
+          <div>
+            <label class="block text-xs mb-1" style="color: var(--ink-muted);">Prendre une photo ou importer une image</label>
+            <input type="file" name="photo" accept="image/*" capture="environment"
+                   onchange="previewPhoto(event)"
+                   class="text-sm w-full">
+          </div>
+          <div>
+            <label class="block text-xs mb-1" style="color: var(--ink-muted);">Ou coller le lien d'une image trouvée en ligne</label>
+            <input type="url" name="remote_image_url" id="image-url-field" inputmode="url"
+                   value="{{ values.remote_image_url or '' }}"
+                   placeholder="https://exemple.com/couverture.jpg"
+                   oninput="previewImageUrl(event)"
+                   class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+            <p class="text-xs mt-1" style="color: var(--ink-muted);">Une photo importée ci-dessus est prioritaire sur ce lien.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main information -->
+    <div class="card p-5 space-y-4">
+      <h2 class="text-sm font-semibold">Informations générales</h2>
+
+      <div>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted);">Titre *</label>
+        <input
+          type="text" name="title" id="title-field" value="{{ values.title }}"
+          class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);"
+          hx-get="{{ url_for('books.check_duplicate') }}"
+          hx-trigger="keyup changed delay:500ms"
+          hx-target="#live-duplicate-alert"
+          hx-include="#isbn-field,#title-field,#volume-field,#exclude-duplicate-field"
+        >
+        <p id="title-error" class="{{ '' if title_error else 'hidden' }} text-xs mt-1" style="color: var(--accent);">Merci de renseigner un titre.</p>
+        <input type="hidden" id="exclude-duplicate-field" name="exclude" value="{{ book.id if book else '' }}">
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs mb-1" style="color: var(--ink-muted);">Type</label>
+          <select name="item_type" class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+            {% for type_ in item_types %}
+            <option value="{{ type_ }}" {{ 'selected' if values.item_type == type_ }}>{{ type_ }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs mb-1" style="color: var(--ink-muted);">ISBN / EAN</label>
+          <input
+            type="text" name="isbn" id="isbn-field" value="{{ values.isbn }}"
+            class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent font-code" style="border-color: var(--border);"
+            hx-get="{{ url_for('books.check_duplicate') }}"
+            hx-trigger="keyup changed delay:500ms"
+            hx-target="#live-duplicate-alert"
+            hx-include="#isbn-field,#title-field,#volume-field,#exclude-duplicate-field"
+          >
+        </div>
+      </div>
+
+      <div id="live-duplicate-alert"></div>
+
+      <div class="grid grid-cols-3 gap-4">
+        <div class="col-span-2">
+          {% include "partials/field_series.html" %}
+        </div>
+        <div>
+          <label class="block text-xs mb-1" style="color: var(--ink-muted);">Tome</label>
+          <div class="flex items-stretch rounded-lg border overflow-hidden" style="border-color: var(--border);">
+            <button type="button" onclick="adjustVolume(-1)"
+                    class="w-9 flex-shrink-0 flex items-center justify-center text-lg leading-none"
+                    style="color: var(--ink-muted); background: var(--surface-muted);" aria-label="Tome précédent">−</button>
+            <input
+              type="number" name="volume" id="volume-field" min="0" value="{{ values.volume }}"
+              class="number-input-no-spinners w-full px-1 py-2 text-sm bg-transparent text-center"
+              hx-get="{{ url_for('books.check_duplicate') }}"
+              hx-trigger="keyup changed delay:500ms, change"
+              hx-target="#live-duplicate-alert"
+              hx-include="#isbn-field,#title-field,#volume-field,#exclude-duplicate-field"
+            >
+            <button type="button" onclick="adjustVolume(1)"
+                    class="w-9 flex-shrink-0 flex items-center justify-center text-lg leading-none"
+                    style="color: var(--ink-muted); background: var(--surface-muted);" aria-label="Tome suivant">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted);">Auteur(s) — séparés par une virgule</label>
+        <input type="text" name="authors" list="authors-list"
+               value="{{ values.authors }}"
+               placeholder="ex : Jean Van Hamme, William Vance"
+               class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        <datalist id="authors-list">
+          {% for a in existing_authors %}<option value="{{ a.full_name }}">{% endfor %}
+        </datalist>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          {% include "partials/field_publisher.html" %}
+        </div>
+        <div>
+          <label class="block text-xs mb-1" style="color: var(--ink-muted);">Date de parution</label>
+          <input type="text" name="publication_date" placeholder="ex : 2019 ou 12/2019"
+                 value="{{ values.publication_date }}"
+                 class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted);">Résumé</label>
+        <textarea name="summary" rows="3"
+                  class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">{{ values.summary }}</textarea>
+      </div>
+    </div>
+
+    <!-- Personal classification -->
+    <div class="card p-5 space-y-4">
+      <h2 class="text-sm font-semibold">Classement personnel</h2>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs mb-1" style="color: var(--ink-muted);">État</label>
+          <select name="condition" class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+            {% for c in conditions %}
+            <option value="{{ c }}" {{ 'selected' if values.condition == c }}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs mb-1" style="color: var(--ink-muted);">Emplacement</label>
+          <input type="text" name="location" list="locations-list"
+                 value="{{ values.location }}"
+                 placeholder="ex : Salon — étagère du haut"
+                 class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+          <datalist id="locations-list">
+            {% for l in locations %}<option value="{{ l.label }}">{% endfor %}
+          </datalist>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted);">Tags — séparés par une virgule</label>
+        <input type="text" name="tags" list="tags-list"
+               value="{{ values.tags }}"
+               placeholder="ex : humour, à relire, prêté à Paul"
+               class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        <datalist id="tags-list">
+          {% for t in existing_tags %}<option value="{{ t.label }}">{% endfor %}
+        </datalist>
+      </div>
+
+      <div>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted);">Notes personnelles</label>
+        <textarea name="personal_notes" rows="2"
+                  class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">{{ values.personal_notes }}</textarea>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 flex-wrap">
+      {% if duplicate %}
+      <button type="submit" class="btn-primary px-5 py-2.5 rounded-lg text-sm font-medium">
+        Ajouter quand même
+      </button>
+      {% else %}
+      <button type="submit" class="btn-primary px-5 py-2.5 rounded-lg text-sm font-medium">
+        {{ 'Enregistrer les modifications' if book else 'Ajouter à la collection' }}
+      </button>
+      {% endif %}
+      <a href="{{ url_for('books.detail', book_id=book.id) if book else url_for('main.index') }}" class="px-5 py-2.5 rounded-lg text-sm" style="color: var(--ink-muted);">
+        Annuler
+      </a>
+    </div>
+  </form>
+</div>
+
+<script>
+  function previewPhoto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const container = document.getElementById('cover-preview');
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      container.outerHTML = `<img id="cover-preview" src="${e.target.result}" class="w-full h-full object-cover">`;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  let imageUrlPreviewDelay;
+  function previewImageUrl(event) {
+    clearTimeout(imageUrlPreviewDelay);
+    const url = event.target.value.trim();
+    imageUrlPreviewDelay = setTimeout(() => {
+      if (!/^https?:\/\//i.test(url)) return;
+      const container = document.getElementById('cover-preview');
+      container.outerHTML = `<img id="cover-preview" src="${url}" class="w-full h-full object-cover" onerror="this.remove();">`;
+    }, 400);
+  }
+
+  function adjustVolume(delta) {
+    const field = document.getElementById('volume-field');
+    let value = parseInt(field.value, 10);
+    if (isNaN(value)) value = 0;
+    value = Math.max(0, value + delta);
+    field.value = value;
+    // Fires the "change" event so the HTMX duplicate check also re-runs.
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function showCreateSeries() {
+    document.getElementById('series-creation').classList.remove('hidden');
+    document.getElementById('new-series-name').focus();
+  }
+
+  function showCreatePublisher() {
+    document.getElementById('publisher-creation').classList.remove('hidden');
+    document.getElementById('new-publisher-name').focus();
+  }
+
+  // Deliberately using plain fetch() rather than HTMX: this button lives
+  // inside the big book form (which contains a photo field in
+  // multipart/form-data), and so doesn't depend on any ambient form
+  // inclusion/encoding logic — just "name".
+  //
+  // Also listens for "touchend" (see field_series.html): on mobile, this
+  // button is tapped while the neighboring text field still has focus
+  // (virtual keyboard open); the "click" event can be swallowed by the
+  // keyboard closing and never arrive. "touchend" fires immediately on
+  // finger lift, without depending on that cycle. The flag below prevents a
+  // double trigger on devices that would still fire both events for a
+  // single press.
+  let seriesCreationInProgress = false;
+
+  async function quickCreateSeries() {
+    if (seriesCreationInProgress) return;
+    seriesCreationInProgress = true;
+
+    const nameField = document.getElementById('new-series-name');
+    const button = document.getElementById('create-series-button');
+    const name = nameField ? nameField.value : '';
+
+    if (button) { button.disabled = true; button.textContent = 'Création…'; }
+
+    try {
+      const response = await fetch("{{ url_for('books.quick_create_series') }}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'name=' + encodeURIComponent(name),
+      });
+      if (!response.ok) {
+        throw new Error('Réponse HTTP ' + response.status);
+      }
+      const html = await response.text();
+      const container = document.getElementById('series-field-container');
+      if (container) {
+        container.outerHTML = html;
+      }
+    } catch (error) {
+      if (button) { button.disabled = false; button.textContent = 'Créer'; }
+      alert("Impossible de créer la série : vérifiez la connexion et réessayez.");
+    } finally {
+      seriesCreationInProgress = false;
+    }
+  }
+
+  let publisherCreationInProgress = false;
+
+  async function quickCreatePublisher() {
+    if (publisherCreationInProgress) return;
+    publisherCreationInProgress = true;
+
+    const nameField = document.getElementById('new-publisher-name');
+    const button = document.getElementById('create-publisher-button');
+    const name = nameField ? nameField.value : '';
+
+    if (button) { button.disabled = true; button.textContent = 'Création…'; }
+
+    try {
+      const response = await fetch("{{ url_for('books.quick_create_publisher') }}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'name=' + encodeURIComponent(name),
+      });
+      if (!response.ok) {
+        throw new Error('Réponse HTTP ' + response.status);
+      }
+      const html = await response.text();
+      const container = document.getElementById('publisher-field-container');
+      if (container) {
+        container.outerHTML = html;
+      }
+    } catch (error) {
+      if (button) { button.disabled = false; button.textContent = 'Créer'; }
+      alert("Impossible de créer l'éditeur : vérifiez la connexion et réessayez.");
+    } finally {
+      publisherCreationInProgress = false;
+    }
+  }
+
+  // Event delegation on document rather than inline onclick/ontouchend
+  // attributes on the button: the latter is replaced (outerHTML) after each
+  // series creation, a handler attached directly to it would disappear with
+  // it. Delegation from document stays valid no matter how many times the
+  // button is recreated, and "pointerup" unifies touch/mouse more reliably
+  // than "click" alone on mobile (especially when a virtual keyboard was
+  // just open).
+  function isCreateSeriesButton(event) {
+    return event.target && event.target.closest && event.target.closest('#create-series-button');
+  }
+  function isCreatePublisherButton(event) {
+    return event.target && event.target.closest && event.target.closest('#create-publisher-button');
+  }
+  document.addEventListener('pointerup', function (event) {
+    if (isCreateSeriesButton(event)) {
+      event.preventDefault();
+      quickCreateSeries();
+    } else if (isCreatePublisherButton(event)) {
+      event.preventDefault();
+      quickCreatePublisher();
+    }
+  });
+  document.addEventListener('click', function (event) {
+    if (isCreateSeriesButton(event)) {
+      quickCreateSeries();
+    } else if (isCreatePublisherButton(event)) {
+      quickCreatePublisher();
+    }
+  });
+
+  // Explicit title validation on submit: the "required" attribute alone
+  // relies on the browser's native validation bubble, reliable on desktop
+  // but discreet, even invisible, on some mobile browsers (the user then
+  // sees no message and doesn't understand why nothing happens). This
+  // explicit message, styled like the app, shows identically everywhere.
+  document.getElementById('book-form').addEventListener('submit', function (event) {
+    const titleField = document.getElementById('title-field');
+    const errorMessage = document.getElementById('title-error');
+    if (!titleField.value.trim()) {
+      event.preventDefault();
+      errorMessage.classList.remove('hidden');
+      titleField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      titleField.focus();
+    } else {
+      errorMessage.classList.add('hidden');
+    }
+  });
+
+  document.getElementById('title-field').addEventListener('input', function () {
+    if (this.value.trim()) {
+      document.getElementById('title-error').classList.add('hidden');
+    }
+  });
+</script>
+{% endblock %}

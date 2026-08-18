@@ -16,60 +16,61 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # Import explicite des modèles pour qu'ils soient connus d'Alembic/Flask-Migrate
+    # Explicit model import so they're known to Alembic/Flask-Migrate
     from . import models  # noqa: F401
 
     from .routes.main import main_bp
-    from .routes.ouvrages import ouvrages_bp
+    from .routes.books import books_bp
     from .routes.scan import scan_bp
     from .routes.admin import admin_bp
 
     app.register_blueprint(main_bp)
-    app.register_blueprint(ouvrages_bp, url_prefix="/ouvrages")
+    app.register_blueprint(books_bp, url_prefix="/books")
     app.register_blueprint(scan_bp, url_prefix="/scan")
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
     @app.context_processor
-    def injecter_globals():
-        from .services.parametre_service import get_parametre
+    def inject_globals():
+        from .services.settings_service import get_setting
         try:
-            vue_par_defaut = get_parametre("vue_par_defaut", "grille")
+            global_default_view = get_setting("default_view", "grid")
         except Exception:
-            vue_par_defaut = "grille"
-        return {"vue_par_defaut_globale": vue_par_defaut}
+            global_default_view = "grid"
+        return {"global_default_view": global_default_view}
 
     @app.cli.command("init-db")
     def init_db():
-        """Crée les tables si elles n'existent pas encore (premier lancement),
-        et applique les petites migrations ad-hoc pour les colonnes ajoutées
-        depuis (create_all() ne modifie jamais les tables existantes).
+        """Creates the tables if they don't exist yet (first launch), and
+        applies small ad-hoc migrations for columns added since
+        (create_all() never alters existing tables).
 
-        Pour une gestion plus fine des évolutions de schéma par la suite,
-        vous pouvez initialiser Alembic avec :
+        For finer-grained schema evolution management going forward, you can
+        initialize Alembic with:
             flask db init
-            flask db migrate -m "état initial"
+            flask db migrate -m "initial state"
             flask db upgrade
         """
         with app.app_context():
             db.create_all()
-            _appliquer_migrations_adhoc()
-        print("Base de données initialisée.")
+            _apply_adhoc_migrations()
+        print("Database initialized.")
 
-    def _appliquer_migrations_adhoc():
-        """Ajoute les colonnes manquantes sur une base déjà existante, sans
-        toucher aux données. Idempotent : ne fait rien si la colonne existe déjà."""
+    def _apply_adhoc_migrations():
+        """Adds missing columns to an already existing database, without
+        touching the data. Idempotent: does nothing if the column already
+        exists."""
         from sqlalchemy import inspect, text
 
-        inspecteur = inspect(db.engine)
-        if "ouvrages" not in inspecteur.get_table_names():
-            return  # table pas encore créée, create_all() vient de tout poser correctement
+        inspector = inspect(db.engine)
+        if "books" not in inspector.get_table_names():
+            return  # table not created yet, create_all() just laid everything out correctly
 
-        colonnes = {c["name"] for c in inspecteur.get_columns("ouvrages")}
-        if "lu" not in colonnes:
-            with db.engine.begin() as connexion:
-                connexion.execute(
-                    text("ALTER TABLE ouvrages ADD COLUMN lu BOOLEAN NOT NULL DEFAULT 0")
+        columns = {c["name"] for c in inspector.get_columns("books")}
+        if "read" not in columns:
+            with db.engine.begin() as connection:
+                connection.execute(
+                    text("ALTER TABLE books ADD COLUMN read BOOLEAN NOT NULL DEFAULT 0")
                 )
-            print("Migration ad-hoc appliquée : ouvrages.lu")
+            print("Ad-hoc migration applied: books.read")
 
     return app
