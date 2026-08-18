@@ -1,0 +1,50 @@
+<div class="carte p-5">
+  <h2 class="text-sm font-semibold mb-4">Paramètres généraux</h2>
+
+  <form
+    hx-post="{{ url_for('admin.sauvegarder_parametres') }}"
+    hx-target="#contenu-admin"
+    class="space-y-4"
+  >
+    <div>
+      <label class="block text-xs mb-1" style="color: var(--ink-muted);">Source prioritaire pour la récupération des métadonnées ISBN</label>
+      <select name="api_prioritaire" class="w-full sm:w-72 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        <option value="openlibrary" {{ 'selected' if api_prioritaire == 'openlibrary' }}>Open Library</option>
+        <option value="googlebooks" {{ 'selected' if api_prioritaire == 'googlebooks' }}>Google Books</option>
+      </select>
+      <p class="text-xs mt-1" style="color: var(--ink-muted);">La seconde source est utilisée automatiquement en repli si la première ne trouve rien.</p>
+    </div>
+
+    <div>
+      <label class="block text-xs mb-1" style="color: var(--ink-muted);">Affichage par défaut de la collection</label>
+      <select name="vue_par_defaut" class="w-full sm:w-72 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        <option value="grille" {{ 'selected' if vue_par_defaut == 'grille' }}>Grille (couvertures)</option>
+        <option value="liste" {{ 'selected' if vue_par_defaut == 'liste' }}>Liste (tableau)</option>
+        <option value="etageres" {{ 'selected' if vue_par_defaut == 'etageres' }}>Étagères (par série)</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-xs mb-1" style="color: var(--ink-muted);">Détection des doublons à l'ajout</label>
+      <select name="detection_doublons" class="w-full sm:w-96 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        {% for valeur, libelle in choix_detection_doublons %}
+        <option value="{{ valeur }}" {{ 'selected' if detection_doublons == valeur }}>{{ libelle }}</option>
+        {% endfor %}
+      </select>
+      <p class="text-xs mt-1" style="color: var(--ink-muted);">
+        Appliquée partout : ajout manuel, scan, et import d'une sauvegarde (les doublons y sont alors automatiquement ignorés plutôt que dupliqués).
+      </p>
+    </div>
+
+    <button type="submit" class="bouton-primaire px-4 py-2 rounded-lg text-sm font-medium">
+      Enregistrer
+    </button>
+  </form>
+</div>
+
+<div class="carte p-5 mt-4">
+  <h2 class="text-sm font-semibold mb-2">À propos</h2>
+  <p class="text-sm" style="color: var(--ink-muted);">
+    Application 100&nbsp;% locale, sans compte ni authentification. Les données sont stockées dans une base SQLite persistée via un volume Docker.
+  </p>
+</div>

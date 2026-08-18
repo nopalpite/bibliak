@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="fr" class="scroll-smooth">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block titre %}Ma Bibliothèque{% endblock %}</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode: 'class' };
+</script>
+
+<style>
+  :root {
+    /* Papier (fond) et surfaces */
+    --bg: #EDEAE0;
+    --surface: #FFFFFF;
+    --surface-muted: #E6E1D2;
+    --ink: #221F1B;
+    --ink-muted: #6B6659;
+    --border: #E1DCCC;
+
+    /* Reliure (accent principal — cuir/toile de reliure) */
+    --accent: #7B2A2A;
+    --accent-forte: #5E1F1F;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #F1E1DD;
+    --focus-ring: #7B2A2A;
+
+    /* Feuillage (accent secondaire — étagères, séries, succès) */
+    --feuillage: #2E4A3A;
+    --feuillage-soft: #E3E8DD;
+
+    /* Dorure (accent tertiaire — mise en avant discrète, progression) */
+    --dorure: #A9834A;
+    --dorure-claire: #D8BC85;
+
+    --ombre-carte: 0 1px 2px rgba(34,31,27,.04), 0 10px 24px -14px rgba(34,31,27,.18);
+    --ombre-carte-survol: 0 1px 2px rgba(34,31,27,.05), 0 16px 32px -14px rgba(34,31,27,.24);
+    --ombre-couverture: 0 6px 16px -6px rgba(34,31,27,.35), 0 1px 3px rgba(34,31,27,.15);
+  }
+  html.dark {
+    --bg: #181714;
+    --surface: #222019;
+    --surface-muted: #2B2820;
+    --ink: #EDE7D9;
+    --ink-muted: #A69D89;
+    --border: #343025;
+
+    --accent: #C4645C;
+    --accent-forte: #DA8078;
+    --accent-ink: #181714;
+    --accent-soft: #322220;
+
+    --feuillage: #7BAB93;
+    --feuillage-soft: #212821;
+
+    --dorure: #D2B074;
+    --dorure-claire: #E6D2A3;
+
+    --ombre-carte: 0 1px 2px rgba(0,0,0,.3), 0 10px 24px -14px rgba(0,0,0,.5);
+    --ombre-carte-survol: 0 1px 2px rgba(0,0,0,.35), 0 16px 32px -14px rgba(0,0,0,.6);
+    --ombre-couverture: 0 8px 20px -6px rgba(0,0,0,.6), 0 1px 3px rgba(0,0,0,.4);
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    /* Grain de papier très discret, pour éviter un aplat de couleur trop numérique */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  }
+  .police-affichage { font-family: 'Fraunces', serif; }
+  .police-code { font-family: 'JetBrains Mono', monospace; }
+
+  /* Étiquette "fiche catalogue" : petit repère au-dessus des titres de page */
+  .etiquette {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .6875rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--feuillage);
+    font-weight: 500;
+  }
+
+  ::selection { background: var(--accent-soft); color: var(--ink); }
+
+  *:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* Carte : remplace les blocs à bordure grise plate par une élévation douce, façon page posée */
+  .carte {
+    background: var(--surface);
+    border: 1px solid rgba(34,31,27,.06);
+    border-radius: 1rem;
+    box-shadow: var(--ombre-carte);
+  }
+  html.dark .carte { border-color: rgba(255,255,255,.06); }
+
+  /* Couverture d'ouvrage : légère élévation façon livre posé sur l'étagère */
+  .couverture {
+    box-shadow: var(--ombre-couverture);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .group:hover .couverture { transform: translateY(-2px); box-shadow: var(--ombre-carte-survol); }
+
+  /* Le "dos de livre" : signature visuelle de l'application — une tranche
+     reliée avec une amorce de lumière, comme sur l'étagère. La couleur de
+     base peut être surchargée par une classe .spine-N (voir palette
+     ci-dessous), pour donner une teinte de reliure propre à chaque série. */
+  .dos-de-livre {
+    width: 6px;
+    border-radius: 3px;
+    background: linear-gradient(180deg, var(--dorure-claire) 0%, var(--spine-base, var(--accent)) 18%, var(--spine-fonce, var(--accent-forte)) 100%);
+    box-shadow: 1px 0 2px rgba(0,0,0,.15) inset;
+    flex-shrink: 0;
+  }
+
+  /* Palette des reliures par série : 8 tons distincts, déterministes
+     (Serie.classe_couleur), qui restent dans la même famille "matières
+     et cuirs reliés" que le reste de l'interface — pas de couleurs vives
+     hors-sujet. Version plus lumineuse en mode sombre pour rester lisible. */
+  .spine-1 { --spine-base: #2E4A63; --spine-fonce: #1F3247; } /* bleu prusse */
+  .spine-2 { --spine-base: #33543F; --spine-fonce: #223829; } /* vert forêt */
+  .spine-3 { --spine-base: #5B2C4A; --spine-fonce: #3F1E33; } /* aubergine */
+  .spine-4 { --spine-base: #8C6A2A; --spine-fonce: #6B4F1D; } /* moutarde */
+  .spine-5 { --spine-base: #1F5C56; --spine-fonce: #143E3A; } /* sarcelle */
+  .spine-6 { --spine-base: #8A3F24; --spine-fonce: #632C19; } /* brique */
+  .spine-7 { --spine-base: #37436B; --spine-fonce: #262E4B; } /* indigo */
+  .spine-8 { --spine-base: #6B4A32; --spine-fonce: #4A3222; } /* bronze */
+
+  html.dark .spine-1 { --spine-base: #6C93BE; --spine-fonce: #4A6C91; }
+  html.dark .spine-2 { --spine-base: #7BAB93; --spine-fonce: #547D69; }
+  html.dark .spine-3 { --spine-base: #B776A0; --spine-fonce: #8A5277; }
+  html.dark .spine-4 { --spine-base: #D9B463; --spine-fonce: #AD8A46; }
+  html.dark .spine-5 { --spine-base: #5FB3AA; --spine-fonce: #3D8078; }
+  html.dark .spine-6 { --spine-base: #D68F6C; --spine-fonce: #AB6748; }
+  html.dark .spine-7 { --spine-base: #8892C4; --spine-fonce: #626C9C; }
+  html.dark .spine-8 { --spine-base: #B08A66; --spine-fonce: #8A6749; }
+
+  /* Bouton principal : toile de reliure, avec un léger relief au survol */
+  .bouton-primaire {
+    background: linear-gradient(180deg, var(--accent-forte), var(--accent));
+    color: var(--accent-ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,.1), 0 6px 16px -8px rgba(123,42,42,.55);
+    transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+  }
+  .bouton-primaire:hover { filter: brightness(1.08); box-shadow: 0 2px 4px rgba(0,0,0,.12), 0 10px 20px -8px rgba(123,42,42,.6); }
+  .bouton-primaire:active { transform: translateY(1px); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .couverture, .group:hover .couverture, .bouton-primaire { transition: none !important; transform: none !important; }
+  }
+
+  /* Navigation mobile : masquée par défaut, affichée en ajoutant la classe .ouvert en JS pur */
+  #tiroir-navigation, #voile-mobile { display: none; }
+  #tiroir-navigation.ouvert, #voile-mobile.ouvert { display: flex; }
+  #voile-mobile.ouvert { display: block; }
+
+  .icone-sombre, .icone-claire { display: none; }
+  html:not(.dark) .icone-claire { display: inline-flex; }
+  html.dark .icone-sombre { display: inline-flex; }
+
+  /* Curseur incrémentiel du tome : masque les flèches natives du <input type=number> */
+  .champ-nombre-sans-fleches::-webkit-inner-spin-button,
+  .champ-nombre-sans-fleches::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .champ-nombre-sans-fleches { -moz-appearance: textfield; }
+</style>
+{% block styles_supplementaires %}{% endblock %}
+</head>
+<body class="min-h-screen">
+
+  <!-- En-tête mobile -->
+  <header class="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b" style="background: var(--surface); border-color: var(--border);">
+    <button type="button" onclick="ouvrirMenuMobile()" aria-label="Ouvrir le menu" class="p-2 -ml-2 rounded-lg" style="color: var(--ink);">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a href="{{ url_for('main.index') }}" class="flex items-center gap-2">
+      <span class="dos-de-livre h-6"></span>
+      <span class="police-affichage text-lg font-medium">Ma Bibliothèque</span>
+    </a>
+    <button type="button" onclick="basculerTheme()" aria-label="Changer de thème" class="p-2 -mr-2 rounded-lg" style="color: var(--ink);">
+      <span class="icone-claire"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke-linecap="round"/></svg></span>
+      <span class="icone-sombre"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 1020.354 15.354z"/></svg></span>
+    </button>
+  </header>
+
+  <!-- Voile mobile -->
+  <div id="voile-mobile" onclick="fermerMenuMobile()" class="fixed inset-0 bg-black/40 z-40 lg:hidden"></div>
+
+  {% macro contenu_nav() %}
+  <nav class="flex-1 px-4 space-y-1 text-sm">
+    <a href="{{ url_for('main.index') }}"
+       class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors"
+       style="{{ 'background: var(--accent-soft); color: var(--accent);' if request.endpoint == 'main.index' else 'color: var(--ink-muted);' }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/></svg>
+      Collection
+    </a>
+    <a href="{{ url_for('ouvrages.nouveau') }}"
+       class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors"
+       style="{{ 'background: var(--accent-soft); color: var(--accent);' if request.endpoint == 'ouvrages.nouveau' else 'color: var(--ink-muted);' }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Ajouter manuellement
+    </a>
+    <a href="{{ url_for('scan.page_scan') }}"
+       class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors"
+       style="{{ 'background: var(--accent-soft); color: var(--accent);' if request.endpoint == 'scan.page_scan' else 'color: var(--ink-muted);' }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 011-1h2M20 7V5a1 1 0 00-1-1h-2M4 17v2a1 1 0 001 1h2M20 17v2a1 1 0 01-1 1h-2M4 12h16"/></svg>
+      Scanner un code-barre
+    </a>
+
+    <div class="pt-4 mt-4 border-t" style="border-color: var(--border);">
+      <a href="{{ url_for('admin.accueil') }}"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors"
+         style="{{ 'background: var(--accent-soft); color: var(--accent);' if request.blueprint == 'admin' else 'color: var(--ink-muted);' }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1.04 1.56V21a2 2 0 11-4 0v-.09A1.7 1.7 0 009 19.35a1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.65 15a1.7 1.7 0 00-1.56-1.04H3a2 2 0 110-4h.09A1.7 1.7 0 004.65 9a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 009 4.65a1.7 1.7 0 001.04-1.56V3a2 2 0 114 0v.09a1.7 1.7 0 001.04 1.56 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.35 9c.74.146 1.28.795 1.56 1.04H21a2 2 0 110 4h-.09a1.7 1.7 0 00-1.51.96z"/></svg>
+        Administration
+      </a>
+    </div>
+  </nav>
+
+  <button type="button" onclick="basculerTheme()" class="flex items-center gap-3 mx-4 mb-6 px-3 py-2.5 rounded-lg text-sm transition-colors" style="color: var(--ink-muted);">
+    <span class="icone-claire"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke-linecap="round"/></svg></span>
+    <span class="icone-sombre"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 1020.354 15.354z"/></svg></span>
+    <span class="texte-bascule-theme">Mode sombre</span>
+  </button>
+  {% endmacro %}
+
+  <div class="lg:flex">
+    <!-- Navigation latérale desktop : toujours visible en CSS pur (>= lg), aucune dépendance au JS pour s'afficher -->
+    <aside class="hidden lg:flex lg:flex-col lg:sticky lg:top-0 lg:h-screen lg:w-72 flex-shrink-0 border-r"
+           style="background: var(--surface); border-color: var(--border);">
+      <div class="px-6 py-6">
+        <a href="{{ url_for('main.index') }}" class="flex items-center gap-3">
+          <span class="dos-de-livre h-8"></span>
+          <span class="police-affichage text-xl font-medium leading-tight">Ma<br>Bibliothèque</span>
+        </a>
+      </div>
+      {{ contenu_nav() }}
+    </aside>
+
+    <!-- Tiroir de navigation mobile : affiché/masqué en JavaScript natif (classe .ouvert), jamais affiché >= lg -->
+    <aside
+      id="tiroir-navigation"
+      class="lg:hidden flex-col fixed top-0 left-0 h-screen w-72 z-50 border-r"
+      style="background: var(--surface); border-color: var(--border);"
+    >
+      <div class="flex items-center justify-between px-6 py-6">
+        <a href="{{ url_for('main.index') }}" class="flex items-center gap-3">
+          <span class="dos-de-livre h-8"></span>
+          <span class="police-affichage text-xl font-medium leading-tight">Ma<br>Bibliothèque</span>
+        </a>
+        <button type="button" onclick="fermerMenuMobile()" class="p-1" style="color: var(--ink-muted);" aria-label="Fermer le menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      {{ contenu_nav() }}
+    </aside>
+
+    <!-- Contenu principal -->
+    <main class="flex-1 min-w-0 px-4 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+      {% block contenu %}{% endblock %}
+    </main>
+  </div>
+
+<script>
+  // --- Menu mobile (JavaScript natif, sans dépendance à une librairie) ---
+  function ouvrirMenuMobile() {
+    document.getElementById('tiroir-navigation').classList.add('ouvert');
+    document.getElementById('voile-mobile').classList.add('ouvert');
+  }
+  function fermerMenuMobile() {
+    document.getElementById('tiroir-navigation').classList.remove('ouvert');
+    document.getElementById('voile-mobile').classList.remove('ouvert');
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') fermerMenuMobile();
+  });
+
+  // --- Mode sombre / clair (JavaScript natif) ---
+  function appliquerTheme(sombre) {
+    document.documentElement.classList.toggle('dark', sombre);
+    document.querySelectorAll('.texte-bascule-theme').forEach((el) => {
+      el.textContent = sombre ? 'Mode clair' : 'Mode sombre';
+    });
+  }
+
+  function basculerTheme() {
+    const sombreActuel = document.documentElement.classList.contains('dark');
+    const nouveauSombre = !sombreActuel;
+    appliquerTheme(nouveauSombre);
+    try {
+      localStorage.setItem('theme', nouveauSombre ? 'sombre' : 'clair');
+    } catch (e) {
+      // Stockage indisponible (navigation privée stricte...) : le thème ne sera
+      // simplement pas mémorisé d'une session à l'autre, sans bloquer le reste.
+    }
+  }
+
+  (function initTheme() {
+    let preference = null;
+    try {
+      preference = localStorage.getItem('theme');
+    } catch (e) {
+      preference = null;
+    }
+    const sombreParDefaut = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    appliquerTheme(preference ? preference === 'sombre' : sombreParDefaut);
+  })();
+
+  // --- Toast d'erreur global pour les requêtes HTMX ---
+  // Sans ceci, une requête HTMX qui échoue (erreur serveur, réseau coupé...)
+  // ne modifie simplement rien à l'écran : aucun signe visible que l'action
+  // a échoué. On affiche donc un message discret en bas de l'écran.
+  function afficherToastErreur(texte) {
+    let toast = document.getElementById('toast-erreur-htmx');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toast-erreur-htmx';
+      toast.style.cssText = 'position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%);z-index:100;padding:.75rem 1.25rem;border-radius:.75rem;font-size:.8125rem;box-shadow:var(--ombre-carte-survol);background:var(--surface);color:var(--ink);border:1px solid var(--border);max-width:90vw;text-align:center;';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = texte;
+    toast.style.opacity = '1';
+    clearTimeout(toast._minuteur);
+    toast._minuteur = setTimeout(() => { toast.style.opacity = '0'; }, 5000);
+  }
+
+  document.body.addEventListener('htmx:responseError', (e) => {
+    afficherToastErreur(`Une erreur est survenue (${e.detail.xhr.status}). Réessayez.`);
+  });
+  document.body.addEventListener('htmx:sendError', () => {
+    afficherToastErreur('Impossible de contacter le serveur. Vérifiez la connexion.');
+  });
+</script>
+{% block scripts_supplementaires %}{% endblock %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

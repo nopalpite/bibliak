@@ -1,0 +1,13 @@
+services:
+  biblio-app:
+    build: .
+    container_name: biblio-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/instance:/app/instance
+      - ./data/covers:/app/app/static/covers
+      - ./data/certs:/app/certs
+    env_file:
+      - .env
+    restart: unless-stopped

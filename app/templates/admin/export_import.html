@@ -1,0 +1,31 @@
+<div class="space-y-4">
+
+  {% if message %}
+  <div class="rounded-lg px-4 py-3 text-sm" style="background: var(--accent-soft); color: var(--accent);">
+    {{ message }}
+  </div>
+  {% endif %}
+
+  <div class="carte p-5">
+    <h2 class="text-sm font-semibold mb-2">Exporter la collection</h2>
+    <p class="text-sm mb-3" style="color: var(--ink-muted);">
+      {{ nb_ouvrages }} ouvrage{{ 's' if nb_ouvrages != 1 else '' }} actuellement enregistré{{ 's' if nb_ouvrages != 1 else '' }}.
+      Téléchargez une sauvegarde complète au format JSON.
+    </p>
+    <a href="{{ url_for('admin.exporter_json') }}" class="bouton-primaire inline-block px-4 py-2 rounded-lg text-sm font-medium">
+      Télécharger l'export (.json)
+    </a>
+  </div>
+
+  <div class="carte p-5">
+    <h2 class="text-sm font-semibold mb-2">Importer une sauvegarde</h2>
+    <p class="text-sm mb-3" style="color: var(--ink-muted);">
+      Réimporte des ouvrages depuis un fichier JSON exporté précédemment. Les ouvrages sont ajoutés à la collection existante (pas de remplacement).
+    </p>
+    <form hx-post="{{ url_for('admin.importer_json') }}" hx-target="#contenu-admin" hx-encoding="multipart/form-data" class="flex flex-wrap items-center gap-2">
+      <input type="file" name="fichier" accept="application/json" required class="text-sm">
+      <button type="submit" class="px-4 py-2 rounded-lg text-sm border" style="border-color: var(--border);">Importer</button>
+    </form>
+  </div>
+
+</div>

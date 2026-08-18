@@ -1,0 +1,224 @@
+{% extends "layout.html" %}
+
+{% block titre %}Scanner un ouvrage — Ma Bibliothèque{% endblock %}
+
+{% block contenu %}
+<div class="max-w-xl mx-auto">
+  <p class="etiquette mb-1">Ajouter à la collection</p>
+  <h1 class="police-affichage text-3xl font-medium mb-1">Scanner un ouvrage</h1>
+  <p class="text-sm mb-6" style="color: var(--ink-muted);">
+    Récupération automatique du titre, des auteurs, de l'éditeur et de la couverture à partir du code-barre ISBN/EAN.
+  </p>
+
+  <!-- Avertissement si la page n'est pas servie en HTTPS : la caméra sera bloquée par le navigateur -->
+  <div id="alerte-contexte-non-securise" class="hidden mb-6 rounded-xl border p-4 text-sm" style="background: var(--accent-soft); color: var(--accent); border-color: var(--border);">
+    <strong>Accès caméra impossible :</strong> cette page n'est pas servie en HTTPS (<span class="police-code">{{ request.host }}</span>).
+    Les navigateurs bloquent l'accès à la caméra en dehors d'une connexion sécurisée. Accédez à l'application via
+    <span class="police-code">https://</span> depuis votre smartphone, ou utilisez la saisie manuelle ci-dessous en attendant.
+  </div>
+
+  <!-- Avertissement si la librairie de scan n'a pas pu être chargée du tout -->
+  <div id="alerte-librairie-absente" class="hidden mb-6 rounded-xl border p-4 text-sm" style="background: var(--accent-soft); color: var(--accent); border-color: var(--border);">
+    <strong>La bibliothèque de scan n'a pas pu être chargée.</strong> Vérifiez la connexion internet du téléphone (nécessaire une seule fois pour charger le script), puis rechargez cette page. En attendant, utilisez la saisie manuelle ci-dessous.
+  </div>
+
+  <!-- Scan caméra : affiché uniquement sur smartphone (détection JS au chargement, voir script en bas de page) -->
+  <div id="bloc-scan-camera" class="hidden carte mb-6 p-5">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-semibold">Scanner avec l'appareil photo</h2>
+      <button
+        type="button"
+        id="bouton-activer-camera"
+        onclick="basculerScanner()"
+        disabled
+        class="bouton-primaire text-xs px-3 py-1.5 rounded-lg font-medium disabled:opacity-50"
+      >Chargement…</button>
+    </div>
+    <div id="lecteur-camera" class="hidden rounded-lg overflow-hidden min-h-[160px] flex items-center justify-center" style="background: #000;"></div>
+    <p id="message-camera" class="text-xs" style="color: var(--ink-muted);">Cadrez le code-barre au dos de l'ouvrage.</p>
+  </div>
+
+  <!-- Saisie manuelle de l'ISBN : toujours disponible (seule option sur PC/tablette, ou si la caméra ne fonctionne pas) -->
+  <div class="carte p-5">
+    <h2 id="titre-saisie-manuelle" class="text-sm font-semibold mb-3">Saisir le code ISBN / EAN</h2>
+    <form
+      hx-post="{{ url_for('scan.rechercher_isbn') }}"
+      hx-target="#zone-resultat"
+      hx-indicator="#indicateur-scan"
+      class="flex gap-2"
+    >
+      <input id="champ-isbn" type="text" name="isbn" inputmode="numeric" placeholder="ex : 9782505004900"
+             class="flex-1 px-3 py-2.5 rounded-lg border text-sm bg-transparent police-code" style="border-color: var(--border);">
+      <button type="submit" class="bouton-primaire px-4 py-2.5 rounded-lg text-sm font-medium">
+        Rechercher
+      </button>
+    </form>
+    <p id="indicateur-scan" class="htmx-indicator text-xs mt-2" style="color: var(--ink-muted);">Recherche en cours…</p>
+  </div>
+
+  <div id="zone-resultat" class="mt-6"></div>
+</div>
+
+<script>
+  // IMPORTANT : tout le JS de cette page vit dans UN SEUL bloc <script>.
+  // Les déclarations de fonctions ("function xxx() {}") sont hoistées (donc
+  // utilisables avant leur ligne d'écriture) uniquement à l'intérieur d'un
+  // même bloc <script> — jamais entre deux blocs séparés. Si le script
+  // externe html5-qrcode se charge depuis le cache du navigateur, son
+  // "onload" peut se déclencher très vite : mieux vaut ne jamais risquer
+  // d'appeler une fonction qui vit dans un bloc <script> pas encore exécuté.
+
+  let librairieScanChargee = false;
+  let estMobile = false;
+  let scannerActif = false;
+  let lecteur = null;
+  let demarrageAutoTente = false;
+
+  function el(id) {
+    return document.getElementById(id);
+  }
+
+  function afficherErreurCamera(message) {
+    const zone = el('lecteur-camera');
+    if (zone) {
+      zone.classList.remove('hidden');
+      zone.innerHTML = `<p class="text-xs text-white p-3">${message}</p>`;
+    }
+    scannerActif = false;
+    const bouton = el('bouton-activer-camera');
+    if (bouton) bouton.textContent = 'Activer la caméra';
+  }
+
+  function demarrerScanner() {
+    if (!window.isSecureContext) {
+      afficherErreurCamera("Accès caméra bloqué : la page doit être servie en HTTPS.");
+      return;
+    }
+    if (typeof Html5Qrcode === 'undefined') {
+      afficherErreurCamera("La bibliothèque de scan n'a pas pu être chargée (vérifiez la connexion internet). Utilisez la saisie manuelle ci-dessous en attendant.");
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      afficherErreurCamera("Ce navigateur ne permet pas l'accès à la caméra depuis cette page. Utilisez la saisie manuelle ci-dessous.");
+      return;
+    }
+
+    lecteur = new Html5Qrcode('lecteur-camera');
+    lecteur.start(
+      { facingMode: 'environment' },
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 120 },
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+        ],
+      },
+      (texteDecode) => {
+        const champ = el('champ-isbn');
+        if (champ) champ.value = texteDecode;
+        arreterScanner();
+        scannerActif = false;
+        const bouton = el('bouton-activer-camera');
+        if (bouton) bouton.textContent = 'Activer la caméra';
+        const form = champ ? champ.closest('form') : null;
+        if (form) htmx.trigger(form, 'submit');
+      },
+      () => { /* échec de décodage sur une frame : normal, on continue */ }
+    ).catch((erreur) => {
+      const texte = String((erreur && erreur.message) || erreur || '');
+      if (texte.includes('NotAllowedError') || texte.includes('Permission')) {
+        afficherErreurCamera("Accès à la caméra refusé. Ouvrez les paramètres du site (icône à côté de l'URL) et autorisez la caméra, puis réessayez.");
+      } else if (texte.includes('NotFoundError')) {
+        afficherErreurCamera("Aucune caméra détectée sur cet appareil.");
+      } else if (texte.includes('NotReadableError')) {
+        afficherErreurCamera("La caméra est déjà utilisée par une autre application. Fermez-la et réessayez.");
+      } else {
+        afficherErreurCamera("Impossible d'accéder à la caméra (" + texte + "). Utilisez la saisie manuelle ci-dessous.");
+      }
+    });
+  }
+
+  function arreterScanner() {
+    if (!lecteur) return;
+    lecteur.stop().catch(() => {}).finally(() => {
+      try { lecteur.clear(); } catch (e) {}
+      lecteur = null;
+    });
+  }
+
+  function basculerScanner() {
+    if (scannerActif) {
+      scannerActif = false;
+      const bouton = el('bouton-activer-camera');
+      if (bouton) bouton.textContent = 'Activer la caméra';
+      arreterScanner();
+      return;
+    }
+
+    scannerActif = true;
+    const bouton = el('bouton-activer-camera');
+    if (bouton) bouton.textContent = 'Arrêter';
+    const conteneurCamera = el('lecteur-camera');
+    if (conteneurCamera) conteneurCamera.classList.remove('hidden');
+    const messageCamera = el('message-camera');
+    if (messageCamera) messageCamera.classList.add('hidden');
+
+    demarrerScanner();
+  }
+
+  // Sur smartphone, la caméra démarre automatiquement dès que la page et la
+  // librairie sont prêtes : si on vient sur cette page, c'est précisément
+  // pour scanner. Le bouton reste disponible pour arrêter/relancer.
+  function tenterDemarrageAuto() {
+    if (demarrageAutoTente || !estMobile || !librairieScanChargee || !window.isSecureContext) return;
+    demarrageAutoTente = true;
+    basculerScanner();
+  }
+
+  function chargerLibrairieScan(sources, index) {
+    if (index >= sources.length) {
+      const alerte = el('alerte-librairie-absente');
+      if (alerte) alerte.classList.remove('hidden');
+      const bouton = el('bouton-activer-camera');
+      if (bouton) { bouton.disabled = true; bouton.textContent = 'Scan indisponible'; }
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = sources[index];
+    script.onload = () => {
+      librairieScanChargee = true;
+      const bouton = el('bouton-activer-camera');
+      if (bouton) {
+        bouton.disabled = false;
+        bouton.textContent = 'Activer la caméra';
+      }
+      tenterDemarrageAuto();
+    };
+    script.onerror = () => chargerLibrairieScan(sources, index + 1);
+    document.head.appendChild(script);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    estMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (estMobile) {
+      const bloc = el('bloc-scan-camera');
+      if (bloc) bloc.classList.remove('hidden');
+      const titre = el('titre-saisie-manuelle');
+      if (titre) titre.textContent = 'Ou saisir le code manuellement';
+    }
+    if (!window.isSecureContext) {
+      const alerte = el('alerte-contexte-non-securise');
+      if (alerte) alerte.classList.remove('hidden');
+    }
+    tenterDemarrageAuto();
+  });
+
+  chargerLibrairieScan([
+    'https://unpkg.com/html5-qrcode',
+    'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js',
+  ], 0);
+</script>
+{% endblock %}

@@ -1,0 +1,8 @@
+Flask==3.1.1
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.7
+SQLAlchemy==2.0.36
+requests==2.32.3
+Pillow==11.0.0
+gunicorn==23.0.0
+python-dotenv==1.0.1

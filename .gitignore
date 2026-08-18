@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.env
+data/
+instance/*.sqlite3
+app/static/covers/*
+!app/static/covers/.gitkeep
+.venv/
+venv/

@@ -1,0 +1,37 @@
+{% if not ouvrages %}
+<div class="text-center py-20 rounded-2xl border border-dashed" style="border-color: var(--border);">
+  <svg class="mx-auto mb-4" width="52" height="34" viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ink-muted);">
+    <path d="M32 8C27 4 18 3 8 5v27c10-2 19-1 24 3M32 8c5-4 14-5 24-3v27c-10-2-19-1-24 3M32 8v30"/>
+  </svg>
+  <p class="police-affichage text-xl mb-2">Aucun ouvrage ne correspond</p>
+  <p class="text-sm" style="color: var(--ink-muted);">Essayez d'élargir votre recherche, ou ajoutez un nouvel ouvrage à la collection.</p>
+</div>
+{% else %}
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-5">
+  {% for o in ouvrages %}
+  <a href="{{ url_for('ouvrages.detail', ouvrage_id=o.id) }}" class="group flex gap-2">
+    <span class="dos-de-livre self-stretch group-hover:w-2 transition-all {{ o.serie.classe_couleur if o.serie }}"></span>
+    <div class="flex-1 min-w-0">
+      <div class="couverture aspect-[2/3] rounded-lg overflow-hidden mb-2 relative" style="background: var(--surface-muted);">
+        {% if o.lu %}
+        <span class="absolute top-1.5 right-1.5 z-10 flex items-center justify-center rounded-full text-[10px] font-semibold w-5 h-5" style="background: var(--feuillage); color: var(--surface);" title="Lu">
+          ✓
+        </span>
+        {% endif %}
+        {% if o.image_couverture %}
+        <img src="{{ url_for('static', filename='covers/' + o.image_couverture) }}" alt="Couverture de {{ o.titre }}" class="w-full h-full object-cover transition-transform group-hover:scale-[1.03]" loading="lazy">
+        {% else %}
+        <div class="w-full h-full flex items-center justify-center px-3 text-center">
+          <span class="police-affichage text-sm" style="color: var(--ink-muted);">{{ o.titre }}</span>
+        </div>
+        {% endif %}
+      </div>
+      <p class="text-sm font-medium leading-snug truncate" title="{{ o.titre }}">{{ o.titre }}</p>
+      <p class="text-xs mt-0.5 truncate" style="color: var(--ink-muted);">
+        {%- if o.serie -%}{{ o.serie.nom }}{% if o.tome %} T{{ o.tome }}{% endif %}{%- else -%}{{ o.liste_auteurs or o.type_ouvrage }}{%- endif -%}
+      </p>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}

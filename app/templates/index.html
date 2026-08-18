@@ -1,0 +1,117 @@
+{% extends "layout.html" %}
+
+{% block titre %}Ma Bibliothèque — Collection{% endblock %}
+
+{% block contenu %}
+<div class="max-w-7xl mx-auto">
+
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-6">
+    <div>
+      <p class="etiquette mb-1">Ma bibliothèque</p>
+      <h1 class="police-affichage text-3xl font-medium">Collection</h1>
+      <p class="text-sm mt-1" style="color: var(--ink-muted);">
+        {{ ouvrages|length }} ouvrage{{ 's' if ouvrages|length != 1 else '' }}
+      </p>
+    </div>
+
+    <div class="flex items-center gap-1 p-1 rounded-lg" style="background: var(--surface-muted);">
+      <a href="{{ url_for('main.index', vue='grille') }}"
+         class="flex-1 sm:flex-none text-center px-3 py-1.5 rounded-md text-sm transition-colors"
+         style="{{ 'background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.08);' if vue == 'grille' else 'color: var(--ink-muted);' }}">
+        Grille
+      </a>
+      <a href="{{ url_for('main.index', vue='liste') }}"
+         class="flex-1 sm:flex-none text-center px-3 py-1.5 rounded-md text-sm transition-colors"
+         style="{{ 'background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.08);' if vue == 'liste' else 'color: var(--ink-muted);' }}">
+        Liste
+      </a>
+      <a href="{{ url_for('main.index', vue='etageres') }}"
+         class="flex-1 sm:flex-none text-center px-3 py-1.5 rounded-md text-sm transition-colors"
+         style="{{ 'background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.08);' if vue == 'etageres' else 'color: var(--ink-muted);' }}">
+        Étagères
+      </a>
+    </div>
+  </div>
+
+  <!-- Barre de recherche et filtres -->
+  <form
+    class="carte mb-6 p-4 sm:p-5"
+    hx-get="{{ url_for('ouvrages.rechercher') }}"
+    hx-target="#resultats"
+    hx-trigger="input changed delay:400ms, change"
+    hx-indicator="#indicateur-recherche"
+  >
+    <input type="hidden" name="vue" value="{{ vue }}">
+
+    <div class="relative">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--ink-muted);"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>
+      <input
+        type="text" name="q" placeholder="Rechercher par titre, auteur, éditeur, série, ISBN…"
+        class="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm bg-transparent"
+        style="border-color: var(--border); color: var(--ink);"
+      >
+      <span id="indicateur-recherche" class="htmx-indicator absolute right-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--ink-muted);">…</span>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 mt-3">
+      <select name="type" class="px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        <option value="">Tous types</option>
+        {% for type_ in types_ouvrages %}
+        <option value="{{ type_ }}">{{ type_ }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="serie" class="px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        <option value="">Toutes séries</option>
+        {% for s in series %}
+        <option value="{{ s.id }}">{{ s.nom }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="editeur" class="px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        <option value="">Tous éditeurs</option>
+        {% for e in editeurs %}
+        <option value="{{ e.id }}">{{ e.nom }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="tag" class="px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        <option value="">Tous tags</option>
+        {% for t in tags %}
+        <option value="{{ t.id }}">{{ t.libelle }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="emplacement" class="px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        <option value="">Tous emplacements</option>
+        {% for em in emplacements %}
+        <option value="{{ em.id }}">{{ em.libelle }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="lecture" class="px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        <option value="">Lecture : tous</option>
+        <option value="a_lire">À lire</option>
+        <option value="lu">Lu</option>
+      </select>
+
+      <select name="tri" class="px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        <option value="titre">Trier : Titre</option>
+        <option value="date_ajout_desc">Trier : Ajout récent</option>
+        <option value="date_ajout_asc">Trier : Ajout ancien</option>
+        <option value="date_parution">Trier : Parution</option>
+      </select>
+    </div>
+  </form>
+
+  <div id="resultats">
+    {% if vue == 'grille' %}
+      {% include "partials/ouvrages_grille.html" %}
+    {% elif vue == 'liste' %}
+      {% include "partials/ouvrages_liste.html" %}
+    {% else %}
+      {% include "partials/ouvrages_etageres.html" %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

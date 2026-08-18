@@ -1,0 +1,37 @@
+<div id="champ-serie-conteneur">
+  <label class="block text-xs mb-1" style="color: var(--ink-muted);">Série</label>
+  <div class="flex gap-2">
+    <select name="serie_id" class="flex-1 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+      <option value="">Aucune série</option>
+      {% for s in series %}
+      <option value="{{ s.id }}" {{ 'selected' if valeurs.serie_id == s.id }}>{{ s.nom }}</option>
+      {% endfor %}
+    </select>
+    <button type="button" onclick="afficherCreationSerie()"
+            class="px-3 py-2 rounded-lg border text-sm flex-shrink-0" style="border-color: var(--border); color: var(--ink-muted);"
+            title="Créer une nouvelle série">
+      + Série
+    </button>
+  </div>
+
+  {% if message %}
+  <p class="text-xs mt-1.5" style="color: {{ 'var(--accent)' if erreur else 'var(--feuillage)' }};">
+    {{ '⚠️' if erreur else '✓' }} {{ message }}
+  </p>
+  {% endif %}
+
+  <div id="creation-serie" class="{{ '' if erreur else 'hidden' }} mt-2 space-y-2">
+    <input
+      type="text" name="nom" id="nouvelle-serie-nom" placeholder="Nom de la nouvelle série"
+      value="{{ nom_saisi or '' }}"
+      autocomplete="off" autocorrect="off"
+      onkeydown="if (event.key === 'Enter') { event.preventDefault(); creerSerieRapide(); }"
+      class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+    <button
+      type="button"
+      id="bouton-creer-serie"
+      class="bouton-primaire w-full px-3 py-2.5 rounded-lg text-sm"
+    >Créer la série</button>
+    <p class="text-xs" style="color: var(--ink-muted);">Astuce : la touche Entrée du clavier fonctionne aussi.</p>
+  </div>
+</div>

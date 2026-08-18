@@ -1,0 +1,51 @@
+{% if not groupes %}
+<div class="text-center py-20 rounded-2xl border border-dashed" style="border-color: var(--border);">
+  <svg class="mx-auto mb-4" width="52" height="34" viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ink-muted);">
+    <path d="M32 8C27 4 18 3 8 5v27c10-2 19-1 24 3M32 8c5-4 14-5 24-3v27c-10-2-19-1-24 3M32 8v30"/>
+  </svg>
+  <p class="police-affichage text-xl mb-2">Aucun ouvrage ne correspond</p>
+  <p class="text-sm" style="color: var(--ink-muted);">Essayez d'élargir votre recherche, ou ajoutez un nouvel ouvrage à la collection.</p>
+</div>
+{% else %}
+<div class="space-y-10">
+  {% for groupe in groupes %}
+  <section class="{{ groupe.serie.classe_couleur if groupe.serie }}">
+    <div class="flex items-baseline justify-between mb-3">
+      {% if groupe.serie %}
+      <a href="{{ url_for('main.serie_detail', serie_id=groupe.serie.id) }}" class="police-affichage text-lg font-medium hover:underline" style="color: var(--spine-base);">{{ groupe.serie.nom }}</a>
+      <p class="text-xs" style="color: var(--ink-muted);">
+        {{ groupe.ouvrages|length }} tome{{ 's' if groupe.ouvrages|length != 1 }}{% if groupe.serie.nb_tomes_prevu %} sur {{ groupe.serie.nb_tomes_prevu }} prévus{% endif %}
+      </p>
+      {% else %}
+      <span class="police-affichage text-lg font-medium" style="color: var(--ink-muted);">Sans série</span>
+      <p class="text-xs" style="color: var(--ink-muted);">{{ groupe.ouvrages|length }} ouvrage{{ 's' if groupe.ouvrages|length != 1 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="flex gap-3 overflow-x-auto pb-3">
+      {% for o in groupe.ouvrages %}
+      <a href="{{ url_for('ouvrages.detail', ouvrage_id=o.id) }}" class="flex-shrink-0 w-28 group">
+        <div class="couverture aspect-[2/3] rounded-lg overflow-hidden mb-1.5 relative" style="background: var(--surface-muted);">
+          {% if o.lu %}
+          <span class="absolute top-1.5 right-1.5 z-10 flex items-center justify-center rounded-full text-[10px] font-semibold w-5 h-5" style="background: var(--feuillage); color: var(--surface);" title="Lu">
+            ✓
+          </span>
+          {% endif %}
+          {% if o.image_couverture %}
+          <img src="{{ url_for('static', filename='covers/' + o.image_couverture) }}" alt="Couverture de {{ o.titre }}" class="w-full h-full object-cover transition-transform group-hover:scale-[1.03]" loading="lazy">
+          {% else %}
+          <div class="w-full h-full flex items-center justify-center px-2 text-center">
+            <span class="police-affichage text-xs" style="color: var(--ink-muted);">{{ o.titre }}</span>
+          </div>
+          {% endif %}
+        </div>
+        <p class="text-xs truncate" title="{{ o.titre }}">{% if o.tome %}Tome {{ o.tome }}{% else %}{{ o.titre }}{% endif %}</p>
+      </a>
+      {% endfor %}
+    </div>
+    <!-- L'étagère : teintée de la couleur de reliure de la série -->
+    <div class="h-2 rounded-full -mt-1" style="background: linear-gradient(180deg, var(--spine-base, var(--border)), var(--spine-fonce, var(--surface-muted))); box-shadow: 0 1px 2px rgba(34,31,27,.08);"></div>
+  </section>
+  {% endfor %}
+</div>
+{% endif %}
