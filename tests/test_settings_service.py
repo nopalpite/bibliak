@@ -2,7 +2,7 @@ from app.services import settings_service
 
 
 def test_get_setting_returns_default_value_when_unset(app, db):
-    assert settings_service.get_setting("language") == "fr"
+    assert settings_service.get_setting("language") == "en"
     assert settings_service.get_setting("default_view") == "grid"
 
 

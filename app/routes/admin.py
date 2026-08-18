@@ -244,12 +244,12 @@ def import_json():
         imported_count += 1
 
     message = i18n_service.tn(
-        "{n} ouvrage importé.", "{n} ouvrages importés.", imported_count
+        '{n} book imported.', '{n} books imported.', imported_count
     )
     if skipped_count:
         message += " " + i18n_service.tn(
-            "{n} doublon ignoré (déjà présent dans la collection).",
-            "{n} doublons ignorés (déjà présents dans la collection).",
+            '{n} duplicate skipped (already in the collection).',
+            '{n} duplicates skipped (already in the collection).',
             skipped_count,
         )
 

@@ -1,16 +1,16 @@
 <div id="publisher-field-container">
-  <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Éditeur') }}</label>
+  <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Publisher') }}</label>
   <div class="flex gap-2">
     <select name="publisher_id" class="flex-1 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-      <option value="">{{ t('Aucun éditeur') }}</option>
+      <option value="">{{ t('No publisher') }}</option>
       {% for p in publishers %}
       <option value="{{ p.id }}" {{ 'selected' if values.publisher_id == p.id }}>{{ p.name }}</option>
       {% endfor %}
     </select>
     <button type="button" onclick="showCreatePublisher()"
             class="px-3 py-2 rounded-lg border text-sm flex-shrink-0" style="border-color: var(--border); color: var(--ink-muted);"
-            title="{{ t('Créer un nouvel éditeur') }}">
-      + {{ t('Éditeur') }}
+            title="{{ t('Create a new publisher') }}">
+      + {{ t('Publisher') }}
     </button>
   </div>
 
@@ -22,7 +22,7 @@
 
   <div id="publisher-creation" class="{{ '' if error else 'hidden' }} mt-2 space-y-2">
     <input
-      type="text" name="name" id="new-publisher-name" placeholder="{{ t('Nom du nouvel éditeur') }}"
+      type="text" name="name" id="new-publisher-name" placeholder="{{ t('New publisher name') }}"
       value="{{ entered_name or '' }}"
       autocomplete="off" autocorrect="off"
       onkeydown="if (event.key === 'Enter') { event.preventDefault(); quickCreatePublisher(); }"
@@ -31,7 +31,7 @@
       type="button"
       id="create-publisher-button"
       class="btn-primary w-full px-3 py-2.5 rounded-lg text-sm"
-    >{{ t("Créer l'éditeur") }}</button>
-    <p class="text-xs" style="color: var(--ink-muted);">{{ t('Astuce : la touche Entrée du clavier fonctionne aussi.') }}</p>
+    >{{ t('Create publisher') }}</button>
+    <p class="text-xs" style="color: var(--ink-muted);">{{ t('Tip: the keyboard Enter key also works.') }}</p>
   </div>
 </div>

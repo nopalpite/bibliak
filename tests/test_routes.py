@@ -101,11 +101,16 @@ def test_admin_home_and_tabs_load(client):
     assert client.get("/admin/tab/export_import").status_code == 200
 
 
+def test_index_page_is_english_by_default(client):
+    response = client.get("/")
+    assert "No book matches".encode() in response.data
+
+
 def test_admin_language_setting_changes_rendered_text(client, db):
     client.post(
         "/admin/settings",
         data={
-            "language": "en",
+            "language": "fr",
             "priority_api": "openlibrary",
             "default_view": "grid",
             "duplicate_detection": "isbn_and_title",
@@ -113,7 +118,7 @@ def test_admin_language_setting_changes_rendered_text(client, db):
     )
 
     response = client.get("/")
-    assert "No book matches".encode() in response.data
+    assert "Aucun ouvrage ne correspond".encode() in response.data
 
 
 def test_export_json_contains_created_book(client, db):

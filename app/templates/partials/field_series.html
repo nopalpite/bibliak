@@ -1,16 +1,16 @@
 <div id="series-field-container">
-  <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Série') }}</label>
+  <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Series') }}</label>
   <div class="flex gap-2">
     <select name="series_id" class="flex-1 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-      <option value="">{{ t('Aucune série') }}</option>
+      <option value="">{{ t('No series') }}</option>
       {% for s in series %}
       <option value="{{ s.id }}" {{ 'selected' if values.series_id == s.id }}>{{ s.name }}</option>
       {% endfor %}
     </select>
     <button type="button" onclick="showCreateSeries()"
             class="px-3 py-2 rounded-lg border text-sm flex-shrink-0" style="border-color: var(--border); color: var(--ink-muted);"
-            title="{{ t('Créer une nouvelle série') }}">
-      + {{ t('Série') }}
+            title="{{ t('Create a new series') }}">
+      + {{ t('Series') }}
     </button>
   </div>
 
@@ -22,7 +22,7 @@
 
   <div id="series-creation" class="{{ '' if error else 'hidden' }} mt-2 space-y-2">
     <input
-      type="text" name="name" id="new-series-name" placeholder="{{ t('Nom de la nouvelle série') }}"
+      type="text" name="name" id="new-series-name" placeholder="{{ t('New series name') }}"
       value="{{ entered_name or '' }}"
       autocomplete="off" autocorrect="off"
       onkeydown="if (event.key === 'Enter') { event.preventDefault(); quickCreateSeries(); }"
@@ -31,7 +31,7 @@
       type="button"
       id="create-series-button"
       class="btn-primary w-full px-3 py-2.5 rounded-lg text-sm"
-    >{{ t('Créer la série') }}</button>
-    <p class="text-xs" style="color: var(--ink-muted);">{{ t('Astuce : la touche Entrée du clavier fonctionne aussi.') }}</p>
+    >{{ t('Create series') }}</button>
+    <p class="text-xs" style="color: var(--ink-muted);">{{ t('Tip: the keyboard Enter key also works.') }}</p>
   </div>
 </div>

@@ -58,7 +58,7 @@ def quick_create_series():
             "partials/field_series.html",
             series=Series.query.order_by(Series.name).all(),
             values={"series_id": None},
-            message=t("Merci de saisir un nom de série."),
+            message=t('Please enter a series name.'),
             error=True,
             entered_name="",
         )
@@ -71,9 +71,9 @@ def quick_create_series():
         db.session.commit()
 
     message = (
-        t("« {name} » existait déjà : sélectionnée.", name=series.name)
+        t('"{name}" already existed: selected. [series]', name=series.name)
         if already_existing
-        else t("« {name} » créée et sélectionnée.", name=series.name)
+        else t('"{name}" created and selected. [series]', name=series.name)
     )
 
     return render_template(
@@ -98,7 +98,7 @@ def quick_create_publisher():
             "partials/field_publisher.html",
             publishers=Publisher.query.order_by(Publisher.name).all(),
             values={"publisher_id": None},
-            message=t("Merci de saisir un nom d'éditeur."),
+            message=t('Please enter a publisher name.'),
             error=True,
             entered_name="",
         )
@@ -111,9 +111,9 @@ def quick_create_publisher():
         db.session.commit()
 
     message = (
-        t("« {name} » existait déjà : sélectionné.", name=publisher.name)
+        t('"{name}" already existed: selected.', name=publisher.name)
         if already_existing
-        else t("« {name} » créé et sélectionné.", name=publisher.name)
+        else t('"{name}" created and selected.', name=publisher.name)
     )
 
     return render_template(
@@ -281,7 +281,7 @@ def _process_image(book):
     if file and file.filename:
         filename = image_service.save_upload(file)
         if not filename:
-            error = t("La photo importée n'a pas pu être lue (fichier corrompu ou format non supporté).")
+            error = t('The imported photo could not be read (corrupted file or unsupported format).')
     elif remote_image_url:
         filename, error = image_service.download_cover(remote_image_url)
 

@@ -10,7 +10,7 @@
       <p class="kicker mb-1">BIBLIAK</p>
       <h1 class="font-display text-3xl font-medium">{{ t('Collection') }}</h1>
       <p class="text-sm mt-1" style="color: var(--ink-muted);">
-        {{ books|length }} {{ tn('ouvrage', 'ouvrages', books|length) }}
+        {{ books|length }} {{ tn('book', 'books', books|length) }}
       </p>
     </div>
 
@@ -18,17 +18,17 @@
       <a href="{{ url_for('main.index', view='grid') }}"
          class="flex-1 sm:flex-none text-center px-3 py-1.5 rounded-md text-sm transition-colors"
          style="{{ 'background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.08);' if view == 'grid' else 'color: var(--ink-muted);' }}">
-        {{ t('Grille') }}
+        {{ t('Grid') }}
       </a>
       <a href="{{ url_for('main.index', view='list') }}"
          class="flex-1 sm:flex-none text-center px-3 py-1.5 rounded-md text-sm transition-colors"
          style="{{ 'background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.08);' if view == 'list' else 'color: var(--ink-muted);' }}">
-        {{ t('Liste') }}
+        {{ t('List') }}
       </a>
       <a href="{{ url_for('main.index', view='shelves') }}"
          class="flex-1 sm:flex-none text-center px-3 py-1.5 rounded-md text-sm transition-colors"
          style="{{ 'background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.08);' if view == 'shelves' else 'color: var(--ink-muted);' }}">
-        {{ t('Étagères') }}
+        {{ t('Shelves') }}
       </a>
     </div>
   </div>
@@ -46,7 +46,7 @@
     <div class="relative">
       <svg class="absolute left-3 top-1/2 -translate-y-1/2" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--ink-muted);"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>
       <input
-        type="text" name="q" placeholder="{{ t('Rechercher par titre, auteur, éditeur, série, ISBN…') }}"
+        type="text" name="q" placeholder="{{ t('Search by title, author, publisher, series, ISBN…') }}"
         class="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm bg-transparent"
         style="border-color: var(--border); color: var(--ink);"
       >
@@ -55,51 +55,51 @@
 
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 mt-3">
       <select name="type" class="px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-        <option value="">{{ t('Tous types') }}</option>
+        <option value="">{{ t('All types') }}</option>
         {% for type_ in item_types %}
         <option value="{{ type_ }}">{{ type_ }}</option>
         {% endfor %}
       </select>
 
       <select name="series" class="px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-        <option value="">{{ t('Toutes séries') }}</option>
+        <option value="">{{ t('All series') }}</option>
         {% for s in series %}
         <option value="{{ s.id }}">{{ s.name }}</option>
         {% endfor %}
       </select>
 
       <select name="publisher" class="px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-        <option value="">{{ t('Tous éditeurs') }}</option>
+        <option value="">{{ t('All publishers') }}</option>
         {% for p in publishers %}
         <option value="{{ p.id }}">{{ p.name }}</option>
         {% endfor %}
       </select>
 
       <select name="tag" class="px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-        <option value="">{{ t('Tous tags') }}</option>
+        <option value="">{{ t('All tags') }}</option>
         {% for tag in tags %}
         <option value="{{ tag.id }}">{{ tag.label }}</option>
         {% endfor %}
       </select>
 
       <select name="location" class="px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-        <option value="">{{ t('Tous emplacements') }}</option>
+        <option value="">{{ t('All locations') }}</option>
         {% for l in locations %}
         <option value="{{ l.id }}">{{ l.label }}</option>
         {% endfor %}
       </select>
 
       <select name="read_status" class="px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-        <option value="">{{ t('Lecture : tous') }}</option>
-        <option value="unread">{{ t('À lire') }}</option>
-        <option value="read">{{ t('Lu') }}</option>
+        <option value="">{{ t('Reading: all') }}</option>
+        <option value="unread">{{ t('Unread') }}</option>
+        <option value="read">{{ t('Read') }}</option>
       </select>
 
       <select name="sort" class="px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-        <option value="title">{{ t('Trier : Titre') }}</option>
-        <option value="date_added_desc">{{ t('Trier : Ajout récent') }}</option>
-        <option value="date_added_asc">{{ t('Trier : Ajout ancien') }}</option>
-        <option value="publication_date">{{ t('Trier : Parution') }}</option>
+        <option value="title">{{ t('Sort: Title') }}</option>
+        <option value="date_added_desc">{{ t('Sort: Recently added') }}</option>
+        <option value="date_added_asc">{{ t('Sort: Oldest added') }}</option>
+        <option value="publication_date">{{ t('Sort: Publication') }}</option>
       </select>
     </div>
   </form>

@@ -1,13 +1,13 @@
 {% extends "layout.html" %}
 
-{% block title %}{{ t('Modifier un ouvrage') if book else t('Ajouter un ouvrage') }} — BIBLIAK{% endblock %}
+{% block title %}{{ t('Edit a book') if book else t('Add a book') }} — BIBLIAK{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto">
-  <p class="kicker mb-1">{{ t('Fiche existante') if book else t('Nouvel ouvrage') }}</p>
-  <h1 class="font-display text-3xl font-medium mb-1">{{ t('Modifier') if book else t('Ajouter un ouvrage') }}</h1>
+  <p class="kicker mb-1">{{ t('Existing entry') if book else t('New book') }}</p>
+  <h1 class="font-display text-3xl font-medium mb-1">{{ t('Edit') if book else t('Add a book') }}</h1>
   <p class="text-sm mb-6" style="color: var(--ink-muted);">
-    {{ t('Tous les champs peuvent être créés à la volée (auteur, éditeur, série, tag, emplacement).') }}
+    {{ t('All fields can be created on the fly (author, publisher, series, tag, location).') }}
   </p>
 
   <div id="submission-duplicate-alert">
@@ -21,7 +21,7 @@
 
     <!-- Cover -->
     <div class="card p-5">
-      <h2 class="text-sm font-semibold mb-3">{{ t('Couverture') }}</h2>
+      <h2 class="text-sm font-semibold mb-3">{{ t('Cover') }}</h2>
       <div class="flex items-start gap-4">
         <div class="cover w-24 aspect-[2/3] rounded-lg overflow-hidden flex-shrink-0" style="background: var(--surface-muted);" id="cover-preview-wrapper">
           {% if values.image_url %}
@@ -32,19 +32,19 @@
         </div>
         <div class="flex-1 space-y-3">
           <div>
-            <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Prendre une photo ou importer une image') }}</label>
+            <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Take a photo or import an image') }}</label>
             <input type="file" name="photo" accept="image/*" capture="environment"
                    onchange="previewPhoto(event)"
                    class="text-sm w-full">
           </div>
           <div>
-            <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t("Ou coller le lien d'une image trouvée en ligne") }}</label>
+            <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Or paste the link to an image found online') }}</label>
             <input type="url" name="remote_image_url" id="image-url-field" inputmode="url"
                    value="{{ values.remote_image_url or '' }}"
                    placeholder="https://exemple.com/couverture.jpg"
                    oninput="previewImageUrl(event)"
                    class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-            <p class="text-xs mt-1" style="color: var(--ink-muted);">{{ t('Une photo importée ci-dessus est prioritaire sur ce lien.') }}</p>
+            <p class="text-xs mt-1" style="color: var(--ink-muted);">{{ t('A photo imported above takes priority over this link.') }}</p>
           </div>
         </div>
       </div>
@@ -52,10 +52,10 @@
 
     <!-- Main information -->
     <div class="card p-5 space-y-4">
-      <h2 class="text-sm font-semibold">{{ t('Informations générales') }}</h2>
+      <h2 class="text-sm font-semibold">{{ t('General information') }}</h2>
 
       <div>
-        <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Titre') }} *</label>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Title') }} *</label>
         <input
           type="text" name="title" id="title-field" value="{{ values.title }}"
           class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);"
@@ -64,7 +64,7 @@
           hx-target="#live-duplicate-alert"
           hx-include="#isbn-field,#title-field,#volume-field,#exclude-duplicate-field"
         >
-        <p id="title-error" class="{{ '' if title_error else 'hidden' }} text-xs mt-1" style="color: var(--accent);">{{ t('Merci de renseigner un titre.') }}</p>
+        <p id="title-error" class="{{ '' if title_error else 'hidden' }} text-xs mt-1" style="color: var(--accent);">{{ t('Please enter a title.') }}</p>
         <input type="hidden" id="exclude-duplicate-field" name="exclude" value="{{ book.id if book else '' }}">
       </div>
 
@@ -97,11 +97,11 @@
           {% include "partials/field_series.html" %}
         </div>
         <div>
-          <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Tome') }}</label>
+          <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Volume') }}</label>
           <div class="flex items-stretch rounded-lg border overflow-hidden" style="border-color: var(--border);">
             <button type="button" onclick="adjustVolume(-1)"
                     class="w-9 flex-shrink-0 flex items-center justify-center text-lg leading-none"
-                    style="color: var(--ink-muted); background: var(--surface-muted);" aria-label="{{ t('Tome précédent') }}">−</button>
+                    style="color: var(--ink-muted); background: var(--surface-muted);" aria-label="{{ t('Previous volume') }}">−</button>
             <input
               type="number" name="volume" id="volume-field" min="0" value="{{ values.volume }}"
               class="number-input-no-spinners w-full px-1 py-2 text-sm bg-transparent text-center"
@@ -112,16 +112,16 @@
             >
             <button type="button" onclick="adjustVolume(1)"
                     class="w-9 flex-shrink-0 flex items-center justify-center text-lg leading-none"
-                    style="color: var(--ink-muted); background: var(--surface-muted);" aria-label="{{ t('Tome suivant') }}">+</button>
+                    style="color: var(--ink-muted); background: var(--surface-muted);" aria-label="{{ t('Next volume') }}">+</button>
           </div>
         </div>
       </div>
 
       <div>
-        <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Auteur(s) — séparés par une virgule') }}</label>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Author(s) — comma-separated') }}</label>
         <input type="text" name="authors" list="authors-list"
                value="{{ values.authors }}"
-               placeholder="{{ t('ex : Jean Van Hamme, William Vance') }}"
+               placeholder="{{ t('e.g. Jean Van Hamme, William Vance') }}"
                class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
         <datalist id="authors-list">
           {% for a in existing_authors %}<option value="{{ a.full_name }}">{% endfor %}
@@ -133,15 +133,15 @@
           {% include "partials/field_publisher.html" %}
         </div>
         <div>
-          <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Date de parution') }}</label>
-          <input type="text" name="publication_date" placeholder="{{ t('ex : 2019 ou 12/2019') }}"
+          <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Publication date') }}</label>
+          <input type="text" name="publication_date" placeholder="{{ t('e.g. 2019 or 12/2019') }}"
                  value="{{ values.publication_date }}"
                  class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
         </div>
       </div>
 
       <div>
-        <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Résumé') }}</label>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Summary') }}</label>
         <textarea name="summary" rows="3"
                   class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">{{ values.summary }}</textarea>
       </div>
@@ -149,11 +149,11 @@
 
     <!-- Personal classification -->
     <div class="card p-5 space-y-4">
-      <h2 class="text-sm font-semibold">{{ t('Classement personnel') }}</h2>
+      <h2 class="text-sm font-semibold">{{ t('Personal classification') }}</h2>
 
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('État') }}</label>
+          <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Condition') }}</label>
           <select name="condition" class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
             {% for c in conditions %}
             <option value="{{ c }}" {{ 'selected' if values.condition == c }}>{{ c }}</option>
@@ -161,10 +161,10 @@
           </select>
         </div>
         <div>
-          <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Emplacement') }}</label>
+          <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Location') }}</label>
           <input type="text" name="location" list="locations-list"
                  value="{{ values.location }}"
-                 placeholder="{{ t('ex : Salon — étagère du haut') }}"
+                 placeholder="{{ t('e.g. Living room — top shelf') }}"
                  class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
           <datalist id="locations-list">
             {% for l in locations %}<option value="{{ l.label }}">{% endfor %}
@@ -173,10 +173,10 @@
       </div>
 
       <div>
-        <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Tags — séparés par une virgule') }}</label>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Tags — comma-separated') }}</label>
         <input type="text" name="tags" list="tags-list"
                value="{{ values.tags }}"
-               placeholder="{{ t('ex : humour, à relire, prêté à Paul') }}"
+               placeholder="{{ t('e.g. funny, to re-read, lent to Paul') }}"
                class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
         <datalist id="tags-list">
           {% for tag in existing_tags %}<option value="{{ tag.label }}">{% endfor %}
@@ -184,7 +184,7 @@
       </div>
 
       <div>
-        <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Notes personnelles') }}</label>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Personal notes') }}</label>
         <textarea name="personal_notes" rows="2"
                   class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">{{ values.personal_notes }}</textarea>
       </div>
@@ -193,15 +193,15 @@
     <div class="flex items-center gap-3 flex-wrap">
       {% if duplicate %}
       <button type="submit" class="btn-primary px-5 py-2.5 rounded-lg text-sm font-medium">
-        {{ t('Ajouter quand même') }}
+        {{ t('Add anyway') }}
       </button>
       {% else %}
       <button type="submit" class="btn-primary px-5 py-2.5 rounded-lg text-sm font-medium">
-        {{ t('Enregistrer les modifications') if book else t('Ajouter à la collection') }}
+        {{ t('Save changes') if book else t('Add to collection') }}
       </button>
       {% endif %}
       <a href="{{ url_for('books.detail', book_id=book.id) if book else url_for('main.index') }}" class="px-5 py-2.5 rounded-lg text-sm" style="color: var(--ink-muted);">
-        {{ t('Annuler') }}
+        {{ t('Cancel') }}
       </a>
     </div>
   </form>
@@ -209,10 +209,10 @@
 
 <script>
   const FORM_I18N = {
-    creating: {{ t('Création…')|tojson }},
-    create: {{ t('Créer')|tojson }},
-    seriesCreateFailed: {{ t('Impossible de créer la série : vérifiez la connexion et réessayez.')|tojson }},
-    publisherCreateFailed: {{ t("Impossible de créer l'éditeur : vérifiez la connexion et réessayez.")|tojson }},
+    creating: {{ t('Creating…')|tojson }},
+    create: {{ t('Create')|tojson }},
+    seriesCreateFailed: {{ t('Could not create the series: check your connection and try again.')|tojson }},
+    publisherCreateFailed: {{ t('Could not create the publisher: check your connection and try again.')|tojson }},
   };
 
   function previewPhoto(event) {

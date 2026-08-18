@@ -64,17 +64,17 @@ def download_cover(url):
         response = requests.get(url, headers=DOWNLOAD_HEADERS, timeout=TIMEOUT)
         response.raise_for_status()
     except requests.RequestException as e:
-        return None, t("Le lien n'a pas pu être téléchargé ({error}).", error=e.__class__.__name__)
+        return None, t('The link could not be downloaded ({error}).', error=e.__class__.__name__)
 
     content_type = response.headers.get("Content-Type", "")
     if content_type.startswith("text/html"):
-        return None, t("Ce lien pointe vers une page web, pas directement vers un fichier image.")
+        return None, t('This link points to a web page, not directly to an image file.')
 
     try:
         image = Image.open(BytesIO(response.content))
         image.load()  # force full decoding here to detect an unsupported format
     except Exception:
-        return None, t("Le format de cette image n'a pas pu être lu (fichier corrompu ou format non supporté).")
+        return None, t("This image's format could not be read (corrupted file or unsupported format).")
 
     return _resize_and_save(image), None
 

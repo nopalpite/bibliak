@@ -19,7 +19,7 @@ def search_isbn():
     isbn = request.form.get("isbn", "").strip()
     if not isbn:
         return render_template(
-            "partials/scan_result.html", error=t("Merci de renseigner un code ISBN/EAN.")
+            "partials/scan_result.html", error=t('Please enter an ISBN/EAN code.')
         )
 
     result, failed_sources = search_by_isbn(
@@ -31,24 +31,23 @@ def search_isbn():
     if not result:
         if len(failed_sources) == 2:
             error = t(
-                "Impossible de contacter Open Library et Google Books "
-                "(pas de réponse ou connexion indisponible). Réessayez dans un instant, "
-                "ou ajoutez l'ouvrage manuellement."
+                "Could not reach Open Library or Google Books (no response or connection "
+                "unavailable). Try again shortly, or add the book manually."
             )
             error_type = "network"
         elif failed_sources:
             failed_source = failed_sources[0]
             other_source = "Google Books" if failed_source == "Open Library" else "Open Library"
             error = t(
-                "{failed_source} n'a pas répondu. {other_source} a été interrogée en repli, "
-                "mais ne connaît pas cet ISBN. Vous pouvez ajouter l'ouvrage manuellement.",
+                "{failed_source} did not respond. {other_source} was queried as a fallback "
+                "but doesn't know this ISBN. You can add the book manually.",
                 failed_source=failed_source, other_source=other_source,
             )
             error_type = "network"
         else:
             error = t(
-                "Aucune information trouvée pour cet ISBN (Open Library et Google Books "
-                "interrogées). Vous pouvez ajouter l'ouvrage manuellement."
+                "No information found for this ISBN (Open Library and Google Books were "
+                "queried). You can add the book manually."
             )
             error_type = "not_found"
 

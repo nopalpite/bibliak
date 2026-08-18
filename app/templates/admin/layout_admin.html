@@ -4,9 +4,9 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
-  <p class="kicker mb-1">{{ t('Réglages') }}</p>
+  <p class="kicker mb-1">{{ t('Configuration') }}</p>
   <h1 class="font-display text-3xl font-medium mb-1">{{ t('Administration') }}</h1>
-  <p class="text-sm mb-6" style="color: var(--ink-muted);">{{ t("Paramètres de l'application, référentiels et sauvegarde de la collection.") }}</p>
+  <p class="text-sm mb-6" style="color: var(--ink-muted);">{{ t('App settings, reference data, and collection backup.') }}</p>
 
   <div class="flex gap-1 p-1 rounded-lg mb-6 overflow-x-auto" style="background: var(--surface-muted);" id="admin-tabs-bar">
     <button
@@ -15,14 +15,14 @@
       hx-get="{{ url_for('admin.tab', name='settings') }}" hx-target="#admin-content"
       class="admin-tab px-4 py-2 rounded-md text-sm whitespace-nowrap transition-colors admin-tab-active"
       data-tab="settings"
-    >{{ t('Paramètres') }}</button>
+    >{{ t('Settings') }}</button>
     <button
       type="button"
       onclick="activateAdminTab(this, 'references')"
       hx-get="{{ url_for('admin.tab', name='references') }}" hx-target="#admin-content"
       class="admin-tab px-4 py-2 rounded-md text-sm whitespace-nowrap transition-colors"
       data-tab="references"
-    >{{ t('Référentiels') }}</button>
+    >{{ t('Reference data') }}</button>
     <button
       type="button"
       onclick="activateAdminTab(this, 'export_import')"

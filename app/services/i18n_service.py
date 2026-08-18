@@ -1,11 +1,11 @@
 """UI translations, loaded from flat JSON files in app/translations/.
 
 Deliberately simple, no build step: each app/translations/<code>.json is a
-flat {"source French text": "translated text"} map, plus an optional
-"_name" key giving the language's display name. French (fr.json) is the
+flat {"source English text": "translated text"} map, plus an optional
+"_name" key giving the language's display name. English (en.json) is the
 reference: every key used anywhere in the app must exist there, and any
 other language falls back to it for missing keys — a half-translated
-language file never breaks the UI, it just shows French for the gaps.
+language file never breaks the UI, it just shows English for the gaps.
 
 Adding a language (e.g. Croatian) is just dropping a new hr.json in this
 folder: available_languages() discovers it automatically, no code change.
@@ -19,7 +19,7 @@ from flask import g
 from app.services.settings_service import get_setting
 
 TRANSLATIONS_DIR = Path(__file__).resolve().parent.parent / "translations"
-REFERENCE_LANGUAGE = "fr"
+REFERENCE_LANGUAGE = "en"
 
 _cache = {}
 
@@ -62,8 +62,8 @@ def current_locale():
 
 
 def t(key, **kwargs):
-    """Translates `key` (the reference French text) into the current
-    language. Falls back to French, then to the key itself, if the
+    """Translates `key` (the reference English text) into the current
+    language. Falls back to English, then to the key itself, if the
     translation is missing. Supports {placeholder} interpolation via
     str.format()."""
     locale = current_locale()

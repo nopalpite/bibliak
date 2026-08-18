@@ -2,37 +2,37 @@
 
   <!-- Item types -->
   <div class="card p-5">
-    <h2 class="text-sm font-semibold mb-3">{{ t("Types d'ouvrage") }}</h2>
+    <h2 class="text-sm font-semibold mb-3">{{ t('Item types') }}</h2>
     <div class="flex flex-wrap gap-2 mb-3">
       {% for type_ in item_types %}
       <form hx-post="{{ url_for('admin.remove_list_value', key='item_types') }}" hx-target="#admin-content" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border" style="border-color: var(--border);">
         <input type="hidden" name="value" value="{{ type_ }}">
         {{ type_ }}
-        <button type="submit" aria-label="{{ t('Supprimer') }}" style="color: var(--ink-muted);">✕</button>
+        <button type="submit" aria-label="{{ t('Delete') }}" style="color: var(--ink-muted);">✕</button>
       </form>
       {% endfor %}
     </div>
     <form hx-post="{{ url_for('admin.add_list_value', key='item_types') }}" hx-target="#admin-content" class="flex gap-2">
-      <input type="text" name="value" placeholder="{{ t('Nouveau type (ex : Artbook)') }}" class="flex-1 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-      <button type="submit" class="px-3 py-2 rounded-lg text-sm border" style="border-color: var(--border);">{{ t('Ajouter') }}</button>
+      <input type="text" name="value" placeholder="{{ t('New type (e.g. Artbook)') }}" class="flex-1 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+      <button type="submit" class="px-3 py-2 rounded-lg text-sm border" style="border-color: var(--border);">{{ t('Add') }}</button>
     </form>
   </div>
 
   <!-- Conditions -->
   <div class="card p-5">
-    <h2 class="text-sm font-semibold mb-3">{{ t('États possibles') }}</h2>
+    <h2 class="text-sm font-semibold mb-3">{{ t('Possible conditions') }}</h2>
     <div class="flex flex-wrap gap-2 mb-3">
       {% for c in conditions %}
       <form hx-post="{{ url_for('admin.remove_list_value', key='conditions') }}" hx-target="#admin-content" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border" style="border-color: var(--border);">
         <input type="hidden" name="value" value="{{ c }}">
         {{ c }}
-        <button type="submit" aria-label="{{ t('Supprimer') }}" style="color: var(--ink-muted);">✕</button>
+        <button type="submit" aria-label="{{ t('Delete') }}" style="color: var(--ink-muted);">✕</button>
       </form>
       {% endfor %}
     </div>
     <form hx-post="{{ url_for('admin.add_list_value', key='conditions') }}" hx-target="#admin-content" class="flex gap-2">
-      <input type="text" name="value" placeholder="{{ t('Nouvel état (ex : Collector)') }}" class="flex-1 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-      <button type="submit" class="px-3 py-2 rounded-lg text-sm border" style="border-color: var(--border);">{{ t('Ajouter') }}</button>
+      <input type="text" name="value" placeholder="{{ t('New condition (e.g. Collector)') }}" class="flex-1 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+      <button type="submit" class="px-3 py-2 rounded-lg text-sm border" style="border-color: var(--border);">{{ t('Add') }}</button>
     </form>
   </div>
 
@@ -46,11 +46,11 @@
       <li class="flex items-center gap-2 py-2 text-sm">
         <form hx-post="{{ url_for('admin.rename_reference', model_name=model_name, item_id=item.id) }}" hx-target="#admin-content" class="flex-1 flex gap-2">
           <input type="text" name="value" value="{{ item.name if item.name is defined else item.label }}" class="flex-1 px-2 py-1 rounded-md border text-sm bg-transparent" style="border-color: var(--border);">
-          <button type="submit" class="text-xs px-2 py-1 rounded-md border" style="border-color: var(--border); color: var(--ink-muted);">{{ t('Renommer') }}</button>
+          <button type="submit" class="text-xs px-2 py-1 rounded-md border" style="border-color: var(--border); color: var(--ink-muted);">{{ t('Rename') }}</button>
         </form>
         <form hx-post="{{ url_for('admin.delete_reference', model_name=model_name, item_id=item.id) }}" hx-target="#admin-content"
-              onsubmit="return confirm({{ t('Supprimer « {name} » ? Les ouvrages liés perdront cette information.', name=(item.name if item.name is defined else item.label))|tojson }});">
-          <button type="submit" class="text-xs px-2 py-1 rounded-md" style="color: var(--ink-muted);">{{ t('Supprimer') }}</button>
+              onsubmit="return confirm({{ t('Delete "{name}"? Linked books will lose this information.', name=(item.name if item.name is defined else item.label))|tojson }});">
+          <button type="submit" class="text-xs px-2 py-1 rounded-md" style="color: var(--ink-muted);">{{ t('Delete') }}</button>
         </form>
       </li>
       {% endfor %}
@@ -58,16 +58,16 @@
 
     {% if items|length > 1 %}
     <details class="mb-3">
-      <summary class="text-xs cursor-pointer select-none" style="color: var(--ink-muted);">{{ t('Fusionner deux entrées en doublon') }}</summary>
+      <summary class="text-xs cursor-pointer select-none" style="color: var(--ink-muted);">{{ t('Merge two duplicate entries') }}</summary>
       <form hx-post="{{ url_for('admin.merge_reference', model_name=model_name) }}" hx-target="#admin-content" class="flex flex-wrap items-center gap-2 mt-2">
         <select name="source_id" class="px-2 py-1.5 rounded-md border text-xs bg-transparent" style="border-color: var(--border);">
           {% for item in items %}<option value="{{ item.id }}">{{ item.name if item.name is defined else item.label }}</option>{% endfor %}
         </select>
-        <span class="text-xs" style="color: var(--ink-muted);">{{ t('fusionner vers') }}</span>
+        <span class="text-xs" style="color: var(--ink-muted);">{{ t('merge into') }}</span>
         <select name="target_id" class="px-2 py-1.5 rounded-md border text-xs bg-transparent" style="border-color: var(--border);">
           {% for item in items %}<option value="{{ item.id }}">{{ item.name if item.name is defined else item.label }}</option>{% endfor %}
         </select>
-        <button type="submit" class="text-xs px-3 py-1.5 rounded-md border" style="border-color: var(--border);">{{ t('Fusionner') }}</button>
+        <button type="submit" class="text-xs px-3 py-1.5 rounded-md border" style="border-color: var(--border);">{{ t('Merge') }}</button>
       </form>
     </details>
     {% endif %}
@@ -75,14 +75,14 @@
 
     <form hx-post="{{ url_for('admin.add_reference', model_name=model_name) }}" hx-target="#admin-content" class="flex gap-2">
       <input type="text" name="value" placeholder="{{ placeholder }}" class="flex-1 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-      <button type="submit" class="px-3 py-2 rounded-lg text-sm border" style="border-color: var(--border);">{{ t('Ajouter') }}</button>
+      <button type="submit" class="px-3 py-2 rounded-lg text-sm border" style="border-color: var(--border);">{{ t('Add') }}</button>
     </form>
   </div>
   {% endmacro %}
 
-  {{ reference_section(t("Éditeurs"), "publishers", publishers, t("Nouvel éditeur")) }}
-  {{ reference_section(t("Séries"), "series", series, t("Nouvelle série")) }}
-  {{ reference_section(t("Tags"), "tags", tags, t("Nouveau tag")) }}
-  {{ reference_section(t("Emplacements"), "locations", locations, t("Nouvel emplacement (ex : Salon — étagère 2)")) }}
+  {{ reference_section(t('Publishers'), "publishers", publishers, t('New publisher')) }}
+  {{ reference_section(t('Series list'), "series", series, t('New series')) }}
+  {{ reference_section(t('Tags'), "tags", tags, t('New tag')) }}
+  {{ reference_section(t('Locations'), "locations", locations, t('New location (e.g. Living room — shelf 2)')) }}
 
 </div>

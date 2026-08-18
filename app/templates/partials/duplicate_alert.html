@@ -1,16 +1,16 @@
 {% if duplicate %}
 <div class="{{ 'mt-2' if variant == 'live' else 'mb-4' }} rounded-lg border p-3 text-xs flex items-center justify-between gap-3 flex-wrap" style="background: var(--accent-soft); color: var(--accent); border-color: var(--border);">
   <span>
-    {% set reason = t("le même ISBN") if criterion == "isbn" else t("le même titre et le même tome") %}
+    {% set reason = t('the same ISBN') if criterion == "isbn" else t('the same title and the same volume') %}
     {# duplicate.title is user data: escape it before it goes anywhere near a translated
        string, then mark the fully-composed result safe so the <strong> tag survives. #}
     {% set safe_title = ('<strong>%s</strong>'|safe) % duplicate.title %}
     {% if variant == 'live' %}
-    ⚠️ {{ t('Un ouvrage avec {reason} existe déjà : {title}.', reason=reason, title=safe_title)|safe }}
+    ⚠️ {{ t('A book with {reason} already exists: {title}.', reason=reason, title=safe_title)|safe }}
     {% else %}
-    ⚠️ <strong>{{ t('Doublon détecté :') }}</strong> {{ t("un ouvrage avec {reason} existe déjà en collection ({title}). Vérifiez qu'il ne s'agit pas d'un ajout involontaire.", reason=reason, title=safe_title)|safe }}
+    ⚠️ <strong>{{ t('Duplicate detected:') }}</strong> {{ t("a book with {reason} already exists in the collection ({title}). Check that this isn't an accidental addition.", reason=reason, title=safe_title)|safe }}
     {% endif %}
   </span>
-  <a href="{{ url_for('books.detail', book_id=duplicate.id) }}" target="_blank" class="underline whitespace-nowrap font-medium">{{ t('Voir la fiche existante') }}</a>
+  <a href="{{ url_for('books.detail', book_id=duplicate.id) }}" target="_blank" class="underline whitespace-nowrap font-medium">{{ t('View the existing entry') }}</a>
 </div>
 {% endif %}
