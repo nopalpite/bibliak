@@ -1,5 +1,9 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Without this, `app` is only importable when pytest is invoked as
+# `python -m pytest` (which prepends the CWD to sys.path). Declaring it
+# explicitly makes a plain `pytest` invocation work too — that's what CI runs.
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 120
