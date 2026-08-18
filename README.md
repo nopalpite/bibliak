@@ -77,6 +77,36 @@ If the message *"Camera access unavailable"* still shows up on the Scanner page,
 
 If TLS is terminated upstream by a reverse proxy, set `HTTPS_AUTOSIGNE=false` in `.env`: the container stops generating a certificate and serves the app in plain HTTP on port 8000.
 
+### Deploying a pre-built image (Portainer, Dockge, ...)
+
+Every push to `master` publishes a multi-arch image (`linux/amd64` + `linux/arm64`) to `ghcr.io/nopalpite/bibliak`. If you manage containers through a stack UI like [Portainer](https://www.portainer.io/) or [Dockge](https://github.com/louislam/dockge), you can paste this directly as a new stack — no need to clone the repository or build anything:
+
+```yaml
+services:
+  bibliak:
+    image: ghcr.io/nopalpite/bibliak:latest
+    container_name: bibliak
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/instance:/app/instance
+      - ./data/covers:/app/app/static/covers
+      - ./data/certs:/app/certs
+    environment:
+      SECRET_KEY: change-me-in-production      # set a real random value
+      DATABASE_PATH: instance/biblio.sqlite3
+      PRIORITY_API: openlibrary                # openlibrary | googlebooks
+      GOOGLE_BOOKS_API_KEY: ""                  # optional
+      CONTACT_INFO: ""                          # optional, e.g. you@example.com
+      HOST_IP: ""                                # your server's LAN IP, e.g. 192.168.1.20
+      HTTPS_AUTOSIGNE: "true"                    # "false" if a reverse proxy handles TLS
+    restart: unless-stopped
+```
+
+See [Environment variables](#environment-variables) below for what each one does, and [Enabling camera scanning from a smartphone](#enabling-camera-scanning-from-a-smartphone) for `HOST_IP`.
+
+> **Note**: the `bibliak` package on GHCR is currently **private**. To pull it you'll need either to make the package public (repo → Packages → `bibliak` → Package settings → Change visibility), or to authenticate your Docker host / Portainer / Dockge with a [GitHub personal access token](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry) that has `read:packages` scope. If neither works for you, use the "build from source" method in [Quick start (Docker)](#quick-start-docker) instead — it doesn't touch the registry at all.
+
 ## Environment variables
 
 All variables are read from `.env` (copied from `.env.example`). None are required to get started — the defaults are sensible for local, single-user use.
