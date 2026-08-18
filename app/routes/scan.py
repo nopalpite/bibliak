@@ -1,5 +1,6 @@
 from flask import Blueprint, current_app, render_template, request, session
 
+from app.services.i18n_service import t
 from app.services.isbn_service import search_by_isbn
 from app.services.settings_service import get_setting
 
@@ -18,7 +19,7 @@ def search_isbn():
     isbn = request.form.get("isbn", "").strip()
     if not isbn:
         return render_template(
-            "partials/scan_result.html", error="Merci de renseigner un code ISBN/EAN."
+            "partials/scan_result.html", error=t("Merci de renseigner un code ISBN/EAN.")
         )
 
     result, failed_sources = search_by_isbn(
@@ -29,26 +30,27 @@ def search_isbn():
 
     if not result:
         if len(failed_sources) == 2:
-            error = (
+            error = t(
                 "Impossible de contacter Open Library et Google Books "
                 "(pas de réponse ou connexion indisponible). Réessayez dans un instant, "
                 "ou ajoutez l'ouvrage manuellement."
             )
-            error_type = "reseau"
+            error_type = "network"
         elif failed_sources:
             failed_source = failed_sources[0]
             other_source = "Google Books" if failed_source == "Open Library" else "Open Library"
-            error = (
-                f"{failed_source} n'a pas répondu. {other_source} a été interrogée en repli, "
-                "mais ne connaît pas cet ISBN. Vous pouvez ajouter l'ouvrage manuellement."
+            error = t(
+                "{failed_source} n'a pas répondu. {other_source} a été interrogée en repli, "
+                "mais ne connaît pas cet ISBN. Vous pouvez ajouter l'ouvrage manuellement.",
+                failed_source=failed_source, other_source=other_source,
             )
-            error_type = "reseau"
+            error_type = "network"
         else:
-            error = (
+            error = t(
                 "Aucune information trouvée pour cet ISBN (Open Library et Google Books "
                 "interrogées). Vous pouvez ajouter l'ouvrage manuellement."
             )
-            error_type = "introuvable"
+            error_type = "not_found"
 
         return render_template("partials/scan_result.html", error=error, isbn=isbn, error_type=error_type)
 

@@ -1,5 +1,5 @@
 <div class="card p-5">
-  <h2 class="text-sm font-semibold mb-4">Paramètres généraux</h2>
+  <h2 class="text-sm font-semibold mb-4">{{ t('Paramètres généraux') }}</h2>
 
   <form
     hx-post="{{ url_for('admin.save_settings') }}"
@@ -7,44 +7,53 @@
     class="space-y-4"
   >
     <div>
-      <label class="block text-xs mb-1" style="color: var(--ink-muted);">Source prioritaire pour la récupération des métadonnées ISBN</label>
+      <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Langue') }}</label>
+      <select name="language" class="w-full sm:w-72 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        {% for code, name in available_languages.items() %}
+        <option value="{{ code }}" {{ 'selected' if language == code }}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Source prioritaire pour la récupération des métadonnées ISBN') }}</label>
       <select name="priority_api" class="w-full sm:w-72 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
         <option value="openlibrary" {{ 'selected' if priority_api == 'openlibrary' }}>Open Library</option>
         <option value="googlebooks" {{ 'selected' if priority_api == 'googlebooks' }}>Google Books</option>
       </select>
-      <p class="text-xs mt-1" style="color: var(--ink-muted);">La seconde source est utilisée automatiquement en repli si la première ne trouve rien.</p>
+      <p class="text-xs mt-1" style="color: var(--ink-muted);">{{ t('La seconde source est utilisée automatiquement en repli si la première ne trouve rien.') }}</p>
     </div>
 
     <div>
-      <label class="block text-xs mb-1" style="color: var(--ink-muted);">Affichage par défaut de la collection</label>
+      <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Affichage par défaut de la collection') }}</label>
       <select name="default_view" class="w-full sm:w-72 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-        <option value="grid" {{ 'selected' if default_view == 'grid' }}>Grille (couvertures)</option>
-        <option value="list" {{ 'selected' if default_view == 'list' }}>Liste (tableau)</option>
-        <option value="shelves" {{ 'selected' if default_view == 'shelves' }}>Étagères (par série)</option>
+        <option value="grid" {{ 'selected' if default_view == 'grid' }}>{{ t('Grille (couvertures)') }}</option>
+        <option value="list" {{ 'selected' if default_view == 'list' }}>{{ t('Liste (tableau)') }}</option>
+        <option value="shelves" {{ 'selected' if default_view == 'shelves' }}>{{ t('Étagères (par série)') }}</option>
       </select>
     </div>
 
     <div>
-      <label class="block text-xs mb-1" style="color: var(--ink-muted);">Détection des doublons à l'ajout</label>
+      <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t("Détection des doublons à l'ajout") }}</label>
       <select name="duplicate_detection" class="w-full sm:w-96 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
         {% for value, label in duplicate_detection_choices %}
-        <option value="{{ value }}" {{ 'selected' if duplicate_detection == value }}>{{ label }}</option>
+        <option value="{{ value }}" {{ 'selected' if duplicate_detection == value }}>{{ t(label) }}</option>
         {% endfor %}
       </select>
       <p class="text-xs mt-1" style="color: var(--ink-muted);">
-        Appliquée partout : ajout manuel, scan, et import d'une sauvegarde (les doublons y sont alors automatiquement ignorés plutôt que dupliqués).
+        {{ t("Appliquée partout : ajout manuel, scan, et import d'une sauvegarde (les doublons y sont alors automatiquement ignorés plutôt que dupliqués).") }}
       </p>
     </div>
 
     <button type="submit" class="btn-primary px-4 py-2 rounded-lg text-sm font-medium">
-      Enregistrer
+      {{ t('Enregistrer') }}
     </button>
   </form>
 </div>
 
 <div class="card p-5 mt-4">
-  <h2 class="text-sm font-semibold mb-2">À propos</h2>
+  <h2 class="text-sm font-semibold mb-2">{{ t('À propos') }}</h2>
   <p class="text-sm" style="color: var(--ink-muted);">
-    Application 100&nbsp;% locale, sans compte ni authentification. Les données sont stockées dans une base SQLite persistée via un volume Docker.
+    {{ t('Application 100 % locale, sans compte ni authentification. Les données sont stockées dans une base SQLite persistée via un volume Docker.') }}
   </p>
 </div>

@@ -61,9 +61,5 @@ class Book(db.Model):
     def tag_list(self):
         return [t.label for t in self.tags]
 
-    @property
-    def reading_status(self):
-        return "Lu" if self.read else "À lire"
-
     def __repr__(self):
         return f"<Book {self.title}>"

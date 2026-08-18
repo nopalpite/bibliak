@@ -29,6 +29,11 @@ def create_app(config_class=Config):
     app.register_blueprint(scan_bp, url_prefix="/scan")
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
+    from .services.i18n_service import current_locale, t, tn
+    app.jinja_env.globals["t"] = t
+    app.jinja_env.globals["tn"] = tn
+    app.jinja_env.globals["current_locale"] = current_locale
+
     @app.context_processor
     def inject_globals():
         from .services.settings_service import get_setting

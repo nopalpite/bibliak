@@ -1,59 +1,59 @@
 {% extends "layout.html" %}
 
-{% block title %}Scanner un ouvrage — BIBLIAK{% endblock %}
+{% block title %}{{ t('Scanner un ouvrage') }} — BIBLIAK{% endblock %}
 
 {% block content %}
 <div class="max-w-xl mx-auto">
-  <p class="kicker mb-1">Ajouter à la collection</p>
-  <h1 class="font-display text-3xl font-medium mb-1">Scanner un ouvrage</h1>
+  <p class="kicker mb-1">{{ t('Ajouter à la collection') }}</p>
+  <h1 class="font-display text-3xl font-medium mb-1">{{ t('Scanner un ouvrage') }}</h1>
   <p class="text-sm mb-6" style="color: var(--ink-muted);">
-    Récupération automatique du titre, des auteurs, de l'éditeur et de la couverture à partir du code-barre ISBN/EAN.
+    {{ t("Récupération automatique du titre, des auteurs, de l'éditeur et de la couverture à partir du code-barre ISBN/EAN.") }}
   </p>
 
   <!-- Warning if the page isn't served over HTTPS: the camera will be blocked by the browser -->
   <div id="insecure-context-alert" class="hidden mb-6 rounded-xl border p-4 text-sm" style="background: var(--accent-soft); color: var(--accent); border-color: var(--border);">
-    <strong>Accès caméra impossible :</strong> cette page n'est pas servie en HTTPS (<span class="font-code">{{ request.host }}</span>).
-    Les navigateurs bloquent l'accès à la caméra en dehors d'une connexion sécurisée. Accédez à l'application via
-    <span class="font-code">https://</span> depuis votre smartphone, ou utilisez la saisie manuelle ci-dessous en attendant.
+    <strong>{{ t('Accès caméra impossible :') }}</strong> {{ t("cette page n'est pas servie en HTTPS ({host}).", host=request.host) }}
+    {{ t("Les navigateurs bloquent l'accès à la caméra en dehors d'une connexion sécurisée. Accédez à l'application via") }}
+    <span class="font-code">https://</span> {{ t('depuis votre smartphone, ou utilisez la saisie manuelle ci-dessous en attendant.') }}
   </div>
 
   <!-- Warning if the scan library couldn't be loaded at all -->
   <div id="library-missing-alert" class="hidden mb-6 rounded-xl border p-4 text-sm" style="background: var(--accent-soft); color: var(--accent); border-color: var(--border);">
-    <strong>La bibliothèque de scan n'a pas pu être chargée.</strong> Vérifiez la connexion internet du téléphone (nécessaire une seule fois pour charger le script), puis rechargez cette page. En attendant, utilisez la saisie manuelle ci-dessous.
+    <strong>{{ t("La bibliothèque de scan n'a pas pu être chargée.") }}</strong> {{ t('Vérifiez la connexion internet du téléphone (nécessaire une seule fois pour charger le script), puis rechargez cette page. En attendant, utilisez la saisie manuelle ci-dessous.') }}
   </div>
 
   <!-- Camera scan: shown only on smartphone (JS detection on load, see script at bottom of page) -->
   <div id="camera-scan-block" class="hidden card mb-6 p-5">
     <div class="flex items-center justify-between mb-3">
-      <h2 class="text-sm font-semibold">Scanner avec l'appareil photo</h2>
+      <h2 class="text-sm font-semibold">{{ t("Scanner avec l'appareil photo") }}</h2>
       <button
         type="button"
         id="activate-camera-button"
         onclick="toggleScanner()"
         disabled
         class="btn-primary text-xs px-3 py-1.5 rounded-lg font-medium disabled:opacity-50"
-      >Chargement…</button>
+      >{{ t('Chargement…') }}</button>
     </div>
     <div id="camera-reader" class="hidden rounded-lg overflow-hidden min-h-[160px] flex items-center justify-center" style="background: #000;"></div>
-    <p id="camera-message" class="text-xs" style="color: var(--ink-muted);">Cadrez le code-barre au dos de l'ouvrage.</p>
+    <p id="camera-message" class="text-xs" style="color: var(--ink-muted);">{{ t("Cadrez le code-barre au dos de l'ouvrage.") }}</p>
   </div>
 
   <!-- Manual ISBN entry: always available (the only option on desktop/tablet, or if the camera doesn't work) -->
   <div class="card p-5">
-    <h2 id="manual-entry-title" class="text-sm font-semibold mb-3">Saisir le code ISBN / EAN</h2>
+    <h2 id="manual-entry-title" class="text-sm font-semibold mb-3">{{ t('Saisir le code ISBN / EAN') }}</h2>
     <form
       hx-post="{{ url_for('scan.search_isbn') }}"
       hx-target="#result-zone"
       hx-indicator="#scan-indicator"
       class="flex gap-2"
     >
-      <input id="isbn-field" type="text" name="isbn" inputmode="numeric" placeholder="ex : 9782505004900"
+      <input id="isbn-field" type="text" name="isbn" inputmode="numeric" placeholder="{{ t('ex : 9782505004900') }}"
              class="flex-1 px-3 py-2.5 rounded-lg border text-sm bg-transparent font-code" style="border-color: var(--border);">
       <button type="submit" class="btn-primary px-4 py-2.5 rounded-lg text-sm font-medium">
-        Rechercher
+        {{ t('Rechercher') }}
       </button>
     </form>
-    <p id="scan-indicator" class="htmx-indicator text-xs mt-2" style="color: var(--ink-muted);">Recherche en cours…</p>
+    <p id="scan-indicator" class="htmx-indicator text-xs mt-2" style="color: var(--ink-muted);">{{ t('Recherche en cours…') }}</p>
   </div>
 
   <div id="result-zone" class="mt-6"></div>
@@ -67,6 +67,20 @@
   // loads from the browser cache, its "onload" can fire very fast: better
   // to never risk calling a function that lives in a <script> block not yet
   // executed.
+
+  const SCAN_I18N = {
+    activateCamera: {{ t('Activer la caméra')|tojson }},
+    stop: {{ t('Arrêter')|tojson }},
+    scanUnavailable: {{ t('Scan indisponible')|tojson }},
+    manualEntryTitle: {{ t('Ou saisir le code manuellement')|tojson }},
+    insecureContext: {{ t('Accès caméra bloqué : la page doit être servie en HTTPS.')|tojson }},
+    libraryLoadFailed: {{ t('La bibliothèque de scan n\'a pas pu être chargée (vérifiez la connexion internet). Utilisez la saisie manuelle ci-dessous en attendant.')|tojson }},
+    cameraUnsupported: {{ t('Ce navigateur ne permet pas l\'accès à la caméra depuis cette page. Utilisez la saisie manuelle ci-dessous.')|tojson }},
+    permissionDenied: {{ t('Accès à la caméra refusé. Ouvrez les paramètres du site (icône à côté de l\'URL) et autorisez la caméra, puis réessayez.')|tojson }},
+    noCameraFound: {{ t('Aucune caméra détectée sur cet appareil.')|tojson }},
+    cameraInUse: {{ t('La caméra est déjà utilisée par une autre application. Fermez-la et réessayez.')|tojson }},
+    cameraAccessError: {{ t("Impossible d'accéder à la caméra ({details}). Utilisez la saisie manuelle ci-dessous.")|tojson }},
+  };
 
   let scanLibraryLoaded = false;
   let isMobile = false;
@@ -86,20 +100,20 @@
     }
     scannerActive = false;
     const button = el('activate-camera-button');
-    if (button) button.textContent = 'Activer la caméra';
+    if (button) button.textContent = SCAN_I18N.activateCamera;
   }
 
   function startScanner() {
     if (!window.isSecureContext) {
-      showCameraError("Accès caméra bloqué : la page doit être servie en HTTPS.");
+      showCameraError(SCAN_I18N.insecureContext);
       return;
     }
     if (typeof Html5Qrcode === 'undefined') {
-      showCameraError("La bibliothèque de scan n'a pas pu être chargée (vérifiez la connexion internet). Utilisez la saisie manuelle ci-dessous en attendant.");
+      showCameraError(SCAN_I18N.libraryLoadFailed);
       return;
     }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showCameraError("Ce navigateur ne permet pas l'accès à la caméra depuis cette page. Utilisez la saisie manuelle ci-dessous.");
+      showCameraError(SCAN_I18N.cameraUnsupported);
       return;
     }
 
@@ -122,7 +136,7 @@
         stopScanner();
         scannerActive = false;
         const button = el('activate-camera-button');
-        if (button) button.textContent = 'Activer la caméra';
+        if (button) button.textContent = SCAN_I18N.activateCamera;
         const form = field ? field.closest('form') : null;
         if (form) htmx.trigger(form, 'submit');
       },
@@ -130,13 +144,13 @@
     ).catch((error) => {
       const text = String((error && error.message) || error || '');
       if (text.includes('NotAllowedError') || text.includes('Permission')) {
-        showCameraError("Accès à la caméra refusé. Ouvrez les paramètres du site (icône à côté de l'URL) et autorisez la caméra, puis réessayez.");
+        showCameraError(SCAN_I18N.permissionDenied);
       } else if (text.includes('NotFoundError')) {
-        showCameraError("Aucune caméra détectée sur cet appareil.");
+        showCameraError(SCAN_I18N.noCameraFound);
       } else if (text.includes('NotReadableError')) {
-        showCameraError("La caméra est déjà utilisée par une autre application. Fermez-la et réessayez.");
+        showCameraError(SCAN_I18N.cameraInUse);
       } else {
-        showCameraError("Impossible d'accéder à la caméra (" + text + "). Utilisez la saisie manuelle ci-dessous.");
+        showCameraError(SCAN_I18N.cameraAccessError.replace('{details}', text));
       }
     });
   }
@@ -153,14 +167,14 @@
     if (scannerActive) {
       scannerActive = false;
       const button = el('activate-camera-button');
-      if (button) button.textContent = 'Activer la caméra';
+      if (button) button.textContent = SCAN_I18N.activateCamera;
       stopScanner();
       return;
     }
 
     scannerActive = true;
     const button = el('activate-camera-button');
-    if (button) button.textContent = 'Arrêter';
+    if (button) button.textContent = SCAN_I18N.stop;
     const cameraContainer = el('camera-reader');
     if (cameraContainer) cameraContainer.classList.remove('hidden');
     const cameraMessage = el('camera-message');
@@ -183,7 +197,7 @@
       const alert = el('library-missing-alert');
       if (alert) alert.classList.remove('hidden');
       const button = el('activate-camera-button');
-      if (button) { button.disabled = true; button.textContent = 'Scan indisponible'; }
+      if (button) { button.disabled = true; button.textContent = SCAN_I18N.scanUnavailable; }
       return;
     }
     const script = document.createElement('script');
@@ -193,7 +207,7 @@
       const button = el('activate-camera-button');
       if (button) {
         button.disabled = false;
-        button.textContent = 'Activer la caméra';
+        button.textContent = SCAN_I18N.activateCamera;
       }
       tryAutoStart();
     };
@@ -207,7 +221,7 @@
       const block = el('camera-scan-block');
       if (block) block.classList.remove('hidden');
       const title = el('manual-entry-title');
-      if (title) title.textContent = 'Ou saisir le code manuellement';
+      if (title) title.textContent = SCAN_I18N.manualEntryTitle;
     }
     if (!window.isSecureContext) {
       const alert = el('insecure-context-alert');

@@ -3,6 +3,7 @@ from flask import Blueprint, redirect, render_template, request, session, url_fo
 from app.extensions import db
 from app.models import Author, Book, Location, Publisher, Series, Tag
 from app.services import book_service, image_service
+from app.services.i18n_service import t
 from app.services.settings_service import get_setting
 from app.services.search_service import group_by_series, search_books
 
@@ -57,7 +58,7 @@ def quick_create_series():
             "partials/field_series.html",
             series=Series.query.order_by(Series.name).all(),
             values={"series_id": None},
-            message="Merci de saisir un nom de série.",
+            message=t("Merci de saisir un nom de série."),
             error=True,
             entered_name="",
         )
@@ -70,9 +71,9 @@ def quick_create_series():
         db.session.commit()
 
     message = (
-        f"« {series.name} » existait déjà : sélectionnée."
+        t("« {name} » existait déjà : sélectionnée.", name=series.name)
         if already_existing
-        else f"« {series.name} » créée et sélectionnée."
+        else t("« {name} » créée et sélectionnée.", name=series.name)
     )
 
     return render_template(
@@ -97,7 +98,7 @@ def quick_create_publisher():
             "partials/field_publisher.html",
             publishers=Publisher.query.order_by(Publisher.name).all(),
             values={"publisher_id": None},
-            message="Merci de saisir un nom d'éditeur.",
+            message=t("Merci de saisir un nom d'éditeur."),
             error=True,
             entered_name="",
         )
@@ -110,9 +111,9 @@ def quick_create_publisher():
         db.session.commit()
 
     message = (
-        f"« {publisher.name} » existait déjà : sélectionné."
+        t("« {name} » existait déjà : sélectionné.", name=publisher.name)
         if already_existing
-        else f"« {publisher.name} » créé et sélectionné."
+        else t("« {name} » créé et sélectionné.", name=publisher.name)
     )
 
     return render_template(
@@ -263,7 +264,7 @@ def _form_data():
         "series_id": form.get("series_id", type=int),
         "location": form.get("location"),
         "authors": [a for a in form.get("authors", "").split(",") if a.strip()],
-        "tags": [t for t in form.get("tags", "").split(",") if t.strip()],
+        "tags": [tag for tag in form.get("tags", "").split(",") if tag.strip()],
     }
 
 
@@ -280,7 +281,7 @@ def _process_image(book):
     if file and file.filename:
         filename = image_service.save_upload(file)
         if not filename:
-            error = "La photo importée n'a pas pu être lue (fichier corrompu ou format non supporté)."
+            error = t("La photo importée n'a pas pu être lue (fichier corrompu ou format non supporté).")
     elif remote_image_url:
         filename, error = image_service.download_cover(remote_image_url)
 

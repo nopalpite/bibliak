@@ -12,6 +12,8 @@ import requests
 from flask import current_app
 from PIL import Image, ImageOps
 
+from app.services.i18n_service import t
+
 TIMEOUT = 8  # seconds
 
 # Many sites block (403, replacement page, redirect) requests whose
@@ -62,17 +64,17 @@ def download_cover(url):
         response = requests.get(url, headers=DOWNLOAD_HEADERS, timeout=TIMEOUT)
         response.raise_for_status()
     except requests.RequestException as e:
-        return None, f"Le lien n'a pas pu être téléchargé ({e.__class__.__name__})."
+        return None, t("Le lien n'a pas pu être téléchargé ({error}).", error=e.__class__.__name__)
 
     content_type = response.headers.get("Content-Type", "")
     if content_type.startswith("text/html"):
-        return None, "Ce lien pointe vers une page web, pas directement vers un fichier image."
+        return None, t("Ce lien pointe vers une page web, pas directement vers un fichier image.")
 
     try:
         image = Image.open(BytesIO(response.content))
         image.load()  # force full decoding here to detect an unsupported format
     except Exception:
-        return None, "Le format de cette image n'a pas pu être lu (fichier corrompu ou format non supporté)."
+        return None, t("Le format de cette image n'a pas pu être lu (fichier corrompu ou format non supporté).")
 
     return _resize_and_save(image), None
 

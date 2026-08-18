@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr" class="scroll-smooth">
+<html lang="{{ current_locale() }}" class="scroll-smooth">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -182,14 +182,14 @@
 
   <!-- Mobile header -->
   <header class="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b" style="background: var(--surface); border-color: var(--border);">
-    <button type="button" onclick="openMobileMenu()" aria-label="Ouvrir le menu" class="p-2 -ml-2 rounded-lg" style="color: var(--ink);">
+    <button type="button" onclick="openMobileMenu()" aria-label="{{ t('Ouvrir le menu') }}" class="p-2 -ml-2 rounded-lg" style="color: var(--ink);">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
     <a href="{{ url_for('main.index') }}" class="flex items-center gap-2">
       <span class="book-spine h-6"></span>
       <span class="font-display text-lg font-medium">BIBLIAK</span>
     </a>
-    <button type="button" onclick="toggleTheme()" aria-label="Changer de thème" class="p-2 -mr-2 rounded-lg" style="color: var(--ink);">
+    <button type="button" onclick="toggleTheme()" aria-label="{{ t('Changer de thème') }}" class="p-2 -mr-2 rounded-lg" style="color: var(--ink);">
       <span class="icon-light"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke-linecap="round"/></svg></span>
       <span class="icon-dark"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 1020.354 15.354z"/></svg></span>
     </button>
@@ -204,19 +204,19 @@
        class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors"
        style="{{ 'background: var(--accent-soft); color: var(--accent);' if request.endpoint == 'main.index' else 'color: var(--ink-muted);' }}">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/></svg>
-      Collection
+      {{ t('Collection') }}
     </a>
     <a href="{{ url_for('books.new') }}"
        class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors"
        style="{{ 'background: var(--accent-soft); color: var(--accent);' if request.endpoint == 'books.new' else 'color: var(--ink-muted);' }}">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-      Ajouter manuellement
+      {{ t('Ajouter manuellement') }}
     </a>
     <a href="{{ url_for('scan.scan_page') }}"
        class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors"
        style="{{ 'background: var(--accent-soft); color: var(--accent);' if request.endpoint == 'scan.scan_page' else 'color: var(--ink-muted);' }}">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 011-1h2M20 7V5a1 1 0 00-1-1h-2M4 17v2a1 1 0 001 1h2M20 17v2a1 1 0 01-1 1h-2M4 12h16"/></svg>
-      Scanner un code-barre
+      {{ t('Scanner un code-barre') }}
     </a>
 
     <div class="pt-4 mt-4 border-t" style="border-color: var(--border);">
@@ -224,7 +224,7 @@
          class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors"
          style="{{ 'background: var(--accent-soft); color: var(--accent);' if request.blueprint == 'admin' else 'color: var(--ink-muted);' }}">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1.04 1.56V21a2 2 0 11-4 0v-.09A1.7 1.7 0 009 19.35a1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.65 15a1.7 1.7 0 00-1.56-1.04H3a2 2 0 110-4h.09A1.7 1.7 0 004.65 9a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 009 4.65a1.7 1.7 0 001.04-1.56V3a2 2 0 114 0v.09a1.7 1.7 0 001.04 1.56 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.35 9c.74.146 1.28.795 1.56 1.04H21a2 2 0 110 4h-.09a1.7 1.7 0 00-1.51.96z"/></svg>
-        Administration
+        {{ t('Administration') }}
       </a>
     </div>
   </nav>
@@ -232,7 +232,7 @@
   <button type="button" onclick="toggleTheme()" class="flex items-center gap-3 mx-4 mb-6 px-3 py-2.5 rounded-lg text-sm transition-colors" style="color: var(--ink-muted);">
     <span class="icon-light"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke-linecap="round"/></svg></span>
     <span class="icon-dark"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 1020.354 15.354z"/></svg></span>
-    <span class="theme-toggle-text">Mode sombre</span>
+    <span class="theme-toggle-text">{{ t('Mode sombre') }}</span>
   </button>
   {% endmacro %}
 
@@ -260,7 +260,7 @@
           <span class="book-spine h-8"></span>
           <span class="font-display text-xl font-medium leading-tight">BIBLIAK</span>
         </a>
-        <button type="button" onclick="closeMobileMenu()" class="p-1" style="color: var(--ink-muted);" aria-label="Fermer le menu">
+        <button type="button" onclick="closeMobileMenu()" class="p-1" style="color: var(--ink-muted);" aria-label="{{ t('Fermer le menu') }}">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
       </div>
@@ -274,6 +274,16 @@
   </div>
 
 <script>
+  // Strings rendered server-side once, reused by the plain-JS below: t()
+  // only runs in Jinja, so anything the client toggles dynamically (theme
+  // label, toast messages) needs to be handed over up front.
+  const I18N = {
+    lightMode: {{ t('Mode clair')|tojson }},
+    darkMode: {{ t('Mode sombre')|tojson }},
+    requestError: {{ t('Une erreur est survenue ({status}). Réessayez.')|tojson }},
+    serverUnreachable: {{ t('Impossible de contacter le serveur. Vérifiez la connexion.')|tojson }},
+  };
+
   // --- Mobile menu (plain JavaScript, no library dependency) ---
   function openMobileMenu() {
     document.getElementById('nav-drawer').classList.add('open');
@@ -291,7 +301,7 @@
   function applyTheme(dark) {
     document.documentElement.classList.toggle('dark', dark);
     document.querySelectorAll('.theme-toggle-text').forEach((el) => {
-      el.textContent = dark ? 'Mode clair' : 'Mode sombre';
+      el.textContent = dark ? I18N.lightMode : I18N.darkMode;
     });
   }
 
@@ -337,10 +347,10 @@
   }
 
   document.body.addEventListener('htmx:responseError', (e) => {
-    showErrorToast(`Une erreur est survenue (${e.detail.xhr.status}). Réessayez.`);
+    showErrorToast(I18N.requestError.replace('{status}', e.detail.xhr.status));
   });
   document.body.addEventListener('htmx:sendError', () => {
-    showErrorToast('Impossible de contacter le serveur. Vérifiez la connexion.');
+    showErrorToast(I18N.serverUnreachable);
   });
 </script>
 {% block extra_scripts %}{% endblock %}

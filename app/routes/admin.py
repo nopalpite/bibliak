@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, send_file
 
 from app.extensions import db
 from app.models import Book, Location, Publisher, Series, Tag
-from app.services import book_service, settings_service
+from app.services import book_service, i18n_service, settings_service
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -27,6 +27,8 @@ def _settings_context():
         "default_view": settings_service.get_setting("default_view"),
         "duplicate_detection": settings_service.get_setting("duplicate_detection"),
         "duplicate_detection_choices": settings_service.DUPLICATE_DETECTION_CHOICES,
+        "language": settings_service.get_setting("language", "fr"),
+        "available_languages": i18n_service.available_languages(),
     }
 
 
@@ -74,6 +76,7 @@ def save_settings():
     settings_service.set_setting("priority_api", request.form.get("priority_api"))
     settings_service.set_setting("default_view", request.form.get("default_view"))
     settings_service.set_setting("duplicate_detection", request.form.get("duplicate_detection"))
+    settings_service.set_setting("language", request.form.get("language"))
     return render_template("admin/settings.html", **_settings_context())
 
 
@@ -240,8 +243,14 @@ def import_json():
         book_service.create_book(values)
         imported_count += 1
 
-    message = f"{imported_count} ouvrage(s) importé(s)."
+    message = i18n_service.tn(
+        "{n} ouvrage importé.", "{n} ouvrages importés.", imported_count
+    )
     if skipped_count:
-        message += f" {skipped_count} doublon(s) ignoré(s) (déjà présents dans la collection)."
+        message += " " + i18n_service.tn(
+            "{n} doublon ignoré (déjà présent dans la collection).",
+            "{n} doublons ignorés (déjà présents dans la collection).",
+            skipped_count,
+        )
 
     return render_template("admin/export_import.html", **_export_import_context(message))

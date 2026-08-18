@@ -7,24 +7,24 @@
   {% endif %}
 
   <div class="card p-5">
-    <h2 class="text-sm font-semibold mb-2">Exporter la collection</h2>
+    <h2 class="text-sm font-semibold mb-2">{{ t('Exporter la collection') }}</h2>
     <p class="text-sm mb-3" style="color: var(--ink-muted);">
-      {{ book_count }} ouvrage{{ 's' if book_count != 1 else '' }} actuellement enregistré{{ 's' if book_count != 1 else '' }}.
-      Téléchargez une sauvegarde complète au format JSON.
+      {{ tn('{n} ouvrage actuellement enregistré.', '{n} ouvrages actuellement enregistrés.', book_count) }}
+      {{ t('Téléchargez une sauvegarde complète au format JSON.') }}
     </p>
     <a href="{{ url_for('admin.export_json') }}" class="btn-primary inline-block px-4 py-2 rounded-lg text-sm font-medium">
-      Télécharger l'export (.json)
+      {{ t("Télécharger l'export (.json)") }}
     </a>
   </div>
 
   <div class="card p-5">
-    <h2 class="text-sm font-semibold mb-2">Importer une sauvegarde</h2>
+    <h2 class="text-sm font-semibold mb-2">{{ t('Importer une sauvegarde') }}</h2>
     <p class="text-sm mb-3" style="color: var(--ink-muted);">
-      Réimporte des ouvrages depuis un fichier JSON exporté précédemment. Les ouvrages sont ajoutés à la collection existante (pas de remplacement).
+      {{ t('Réimporte des ouvrages depuis un fichier JSON exporté précédemment. Les ouvrages sont ajoutés à la collection existante (pas de remplacement).') }}
     </p>
     <form hx-post="{{ url_for('admin.import_json') }}" hx-target="#admin-content" hx-encoding="multipart/form-data" class="flex flex-wrap items-center gap-2">
       <input type="file" name="file" accept="application/json" required class="text-sm">
-      <button type="submit" class="px-4 py-2 rounded-lg text-sm border" style="border-color: var(--border);">Importer</button>
+      <button type="submit" class="px-4 py-2 rounded-lg text-sm border" style="border-color: var(--border);">{{ t('Importer') }}</button>
     </form>
   </div>
 

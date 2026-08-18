@@ -14,6 +14,7 @@ DEFAULT_VALUES = {
     "conditions": ["Neuf", "Bon état", "Usagé", "Abîmé"],
     "priority_api": "openlibrary",
     "default_view": "grid",
+    "language": "fr",
     # Duplicate detection policy, applied uniformly wherever a book is
     # created (manual add, scan, import) — see book_service.find_duplicate
     "duplicate_detection": "isbn_and_title",
