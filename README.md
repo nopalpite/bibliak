@@ -1,4 +1,4 @@
-# Ma Bibliothèque
+# BIBLIAK
 
 Local app for managing a comic book and book collection — no account, no authentication, built for personal single-user use.
 

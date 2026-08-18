@@ -72,5 +72,5 @@ def download_certificate():
         certificate_path,
         mimetype="application/x-x509-ca-cert",
         as_attachment=True,
-        download_name="ma-bibliotheque.pem",
+        download_name="bibliak.pem",
     )

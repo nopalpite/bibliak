@@ -41,7 +41,7 @@ if [ ! -f "$CERT_FILE" ] || [ ! -f "$KEY_FILE" ]; then
     openssl req -x509 -nodes -newkey rsa:2048 \
         -keyout "$KEY_FILE" -out "$CERT_FILE" \
         -days 3650 \
-        -subj "/CN=ma-bibliotheque.local" \
+        -subj "/CN=bibliak.local" \
         -addext "subjectAltName=$SAN" 2>/dev/null
 
     echo "Certificate generated (SAN: $SAN)."

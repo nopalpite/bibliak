@@ -28,7 +28,7 @@ def _http_headers():
     CONTACT_INFO environment variable (see .env).
     """
     contact = (current_app.config.get("CONTACT_INFO") or "").strip()
-    agent = "MaBibliotheque/1.0 (application locale de gestion de collection)"
+    agent = "BIBLIAK/1.0 (application locale de gestion de collection)"
     if contact:
         agent += f" - {contact}"
     return {"User-Agent": agent}

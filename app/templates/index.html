@@ -1,13 +1,13 @@
 {% extends "layout.html" %}
 
-{% block title %}Ma Bibliothèque — Collection{% endblock %}
+{% block title %}BIBLIAK — Collection{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
 
   <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-6">
     <div>
-      <p class="kicker mb-1">Ma bibliothèque</p>
+      <p class="kicker mb-1">BIBLIAK</p>
       <h1 class="font-display text-3xl font-medium">Collection</h1>
       <p class="text-sm mt-1" style="color: var(--ink-muted);">
         {{ books|length }} ouvrage{{ 's' if books|length != 1 else '' }}
