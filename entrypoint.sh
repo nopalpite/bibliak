@@ -1,6 +1,22 @@
 #!/bin/sh
 set -e
 
+# HTTPS_AUTOSIGNE=true (défaut) : le conteneur génère et sert lui-même son
+# certificat auto-signé (usage direct, sans reverse proxy devant).
+# HTTPS_AUTOSIGNE=false : TLS est supposé terminé en amont (reverse proxy),
+# gunicorn sert alors l'app en HTTP simple sur le même port.
+HTTPS_AUTOSIGNE="${HTTPS_AUTOSIGNE:-true}"
+
+flask init-db
+
+if [ "$HTTPS_AUTOSIGNE" = "false" ]; then
+    echo "HTTPS_AUTOSIGNE=false : démarrage en HTTP simple (TLS délégué à un reverse proxy)."
+    exec gunicorn \
+        --bind 0.0.0.0:8000 \
+        --workers 2 \
+        run:app
+fi
+
 CERT_DIR="/app/certs"
 CERT_FILE="$CERT_DIR/cert.pem"
 KEY_FILE="$CERT_DIR/key.pem"
@@ -30,8 +46,6 @@ if [ ! -f "$CERT_FILE" ] || [ ! -f "$KEY_FILE" ]; then
 
     echo "Certificat généré (SAN: $SAN)."
 fi
-
-flask init-db
 
 exec gunicorn \
     --bind 0.0.0.0:8000 \

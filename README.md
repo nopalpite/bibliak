@@ -50,6 +50,10 @@ Le certificat est stocké dans `./data/certs` et n'est régénéré qu'une seule
 
 Si le message *"Accès caméra impossible"* s'affiche malgré tout sur la page Scanner, vérifiez que l'URL commence bien par `https://` et non `http://`.
 
+### Utilisation derrière un reverse proxy
+
+Si TLS est terminé en amont par un reverse proxy, mettez `HTTPS_AUTOSIGNE=false` dans `.env` : le conteneur ne génère plus de certificat et sert l'application en HTTP simple sur le port 8000.
+
 
 ## Développement local (sans Docker)
 
