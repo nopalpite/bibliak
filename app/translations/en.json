@@ -45,7 +45,7 @@
   "Could not access the camera ({details}). Use the manual entry below.": "Could not access the camera ({details}). Use the manual entry below.",
   "Could not create the publisher: check your connection and try again.": "Could not create the publisher: check your connection and try again.",
   "Could not create the series: check your connection and try again.": "Could not create the series: check your connection and try again.",
-  "Could not reach Open Library or Google Books (no response or connection unavailable). Try again shortly, or add the book manually.": "Could not reach Open Library or Google Books (no response or connection unavailable). Try again shortly, or add the book manually.",
+  "Could not reach Open Library or Google Books after {attempts} attempts each (no response or connection unavailable). Try again shortly, or add the book manually.": "Could not reach Open Library or Google Books after {attempts} attempts each (no response or connection unavailable). Try again shortly, or add the book manually.",
   "Could not reach the server. Check your connection.": "Could not reach the server. Check your connection.",
   "Cover": "Cover",
   "Cover not saved: {error}": "Cover not saved: {error}",
@@ -162,6 +162,7 @@
   "The link could not be downloaded ({error}).": "The link could not be downloaded ({error}).",
   "The scan library could not be loaded (check your internet connection). Use the manual entry below in the meantime.": "The scan library could not be loaded (check your internet connection). Use the manual entry below in the meantime.",
   "The scan library could not be loaded.": "The scan library could not be loaded.",
+  "The search took too long and expired. Please try the ISBN again.": "The search took too long and expired. Please try the ISBN again.",
   "The second source is used automatically as a fallback if the first finds nothing.": "The second source is used automatically as a fallback if the first finds nothing.",
   "This browser doesn't allow camera access from this page. Use the manual entry below.": "This browser doesn't allow camera access from this page. Use the manual entry below.",
   "This image's format could not be read (corrupted file or unsupported format).": "This image's format could not be read (corrupted file or unsupported format).",
@@ -191,7 +192,7 @@
   "the same title and the same volume": "the same title and the same volume",
   "this page isn't served over HTTPS ({host}).": "this page isn't served over HTTPS ({host}).",
   "unknown": "unknown",
-  "{failed_source} did not respond. {other_source} was queried as a fallback but doesn't know this ISBN. You can add the book manually.": "{failed_source} did not respond. {other_source} was queried as a fallback but doesn't know this ISBN. You can add the book manually.",
+  "{failed_source} did not respond after {attempts} attempts. {other_source} was queried as a fallback but doesn't know this ISBN. You can add the book manually.": "{failed_source} did not respond after {attempts} attempts. {other_source} was queried as a fallback but doesn't know this ISBN. You can add the book manually.",
   "{n} book": "{n} book",
   "{n} book currently saved.": "{n} book currently saved.",
   "{n} book imported.": "{n} book imported.",
@@ -205,5 +206,6 @@
   "{n} owned volume": "{n} owned volume",
   "{n} owned volumes": "{n} owned volumes",
   "{n} volume": "{n} volume",
-  "{n} volumes": "{n} volumes"
+  "{n} volumes": "{n} volumes",
+  "{source} isn't responding — retrying (attempt {attempt}/{max_attempts})…": "{source} isn't responding — retrying (attempt {attempt}/{max_attempts})…"
 }

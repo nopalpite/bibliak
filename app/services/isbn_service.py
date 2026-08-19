@@ -4,15 +4,37 @@ Two sources are queried, with automatic fallback from one to the other:
 - Open Library (free, no key)
 - Google Books (free, optional key for higher quotas)
 
+A source that fails with a transient network error (timeout, connection
+refused...) is retried a few times before falling back to the other source:
+scanning happens over flaky mobile connections, where a failed attempt often
+just means "try again in a second". Each attempt is a separate HTTP request
+(driven by the client via app/routes/scan.py), so the user sees live
+feedback between attempts instead of the page hanging for tens of seconds.
+
 Comics and manga are often poorly referenced in these general-purpose
-databases: the result must therefore always be treated as a pre-fill,
-never as an absolute truth.
+databases: the result must therefore always be treated as a pre-fill, never
+as an absolute truth.
 """
 
 import requests
 from flask import current_app
 
-TIMEOUT = 6  # seconds
+TIMEOUT = 6  # seconds, per HTTP call
+
+# How many times a single source is attempted (first try + retries) after
+# transient network failures before giving up on it and falling back to the
+# other source. The only place this needs editing to change the policy.
+ISBN_SEARCH_MAX_ATTEMPTS = 5
+
+# Delay the browser waits before automatically retrying, in milliseconds
+# (used directly in an htmx "delay:" trigger). Short on purpose: the point is
+# quick feedback, not a long backoff.
+ISBN_SEARCH_RETRY_DELAY_MS = 1500
+
+SOURCE_NAMES = {
+    "openlibrary": "Open Library",
+    "googlebooks": "Google Books",
+}
 
 
 def _clean_isbn(isbn):
@@ -83,33 +105,34 @@ def _from_google_books(isbn, api_key=None):
     }
 
 
-def search_by_isbn(isbn, priority_api="openlibrary", google_api_key=None):
-    """Queries both sources in the chosen priority order.
+def source_order(priority_api):
+    """Order ("openlibrary"/"googlebooks" keys) in which sources are tried."""
+    order = ["openlibrary", "googlebooks"]
+    if priority_api == "googlebooks":
+        order.reverse()
+    return order
 
-    Returns a tuple (result, failed_sources):
-    - result: the first usable result found, or None
-    - failed_sources: names of sources that could not be contacted
-      (timeout, network error, HTTP error) — as distinguished from a source
-      that responded normally but doesn't know this ISBN.
+
+def attempt_source(isbn, source_key, google_api_key=None):
+    """Tries one source, once.
+
+    Returns a (status, result) tuple:
+    - ("ok", result_dict): the source knows this ISBN
+    - ("not_found", None): the source responded but doesn't know this ISBN
+      (not a failure — no point retrying, just try the next source)
+    - ("network_error", None): timeout, connection error, HTTP error...
+      (transient — worth retrying, see ISBN_SEARCH_MAX_ATTEMPTS)
     """
     normalized_isbn = _clean_isbn(isbn)
+    try:
+        if source_key == "googlebooks":
+            result = _from_google_books(normalized_isbn, google_api_key)
+        else:
+            result = _from_open_library(normalized_isbn)
+    except requests.RequestException:
+        return "network_error", None
 
-    sources = [
-        ("Open Library", _from_open_library),
-        ("Google Books", lambda i: _from_google_books(i, google_api_key)),
-    ]
-    if priority_api == "googlebooks":
-        sources.reverse()
-
-    failed_sources = []
-    for source_name, function in sources:
-        try:
-            result = function(normalized_isbn)
-        except requests.RequestException:
-            failed_sources.append(source_name)
-            continue
-        if result and result.get("title"):
-            result["isbn"] = normalized_isbn
-            return result, failed_sources
-
-    return None, failed_sources
+    if result and result.get("title"):
+        result["isbn"] = normalized_isbn
+        return "ok", result
+    return "not_found", None

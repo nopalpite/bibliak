@@ -45,7 +45,7 @@
   "Could not access the camera ({details}). Use the manual entry below.": "Impossible d'accéder à la caméra ({details}). Utilisez la saisie manuelle ci-dessous.",
   "Could not create the publisher: check your connection and try again.": "Impossible de créer l'éditeur : vérifiez la connexion et réessayez.",
   "Could not create the series: check your connection and try again.": "Impossible de créer la série : vérifiez la connexion et réessayez.",
-  "Could not reach Open Library or Google Books (no response or connection unavailable). Try again shortly, or add the book manually.": "Impossible de contacter Open Library et Google Books (pas de réponse ou connexion indisponible). Réessayez dans un instant, ou ajoutez l'ouvrage manuellement.",
+  "Could not reach Open Library or Google Books after {attempts} attempts each (no response or connection unavailable). Try again shortly, or add the book manually.": "Impossible de contacter Open Library et Google Books après {attempts} essais chacune (pas de réponse ou connexion indisponible). Réessayez dans un instant, ou ajoutez l'ouvrage manuellement.",
   "Could not reach the server. Check your connection.": "Impossible de contacter le serveur. Vérifiez la connexion.",
   "Cover": "Couverture",
   "Cover not saved: {error}": "Couverture non enregistrée : {error}",
@@ -162,6 +162,7 @@
   "The link could not be downloaded ({error}).": "Le lien n'a pas pu être téléchargé ({error}).",
   "The scan library could not be loaded (check your internet connection). Use the manual entry below in the meantime.": "La bibliothèque de scan n'a pas pu être chargée (vérifiez la connexion internet). Utilisez la saisie manuelle ci-dessous en attendant.",
   "The scan library could not be loaded.": "La bibliothèque de scan n'a pas pu être chargée.",
+  "The search took too long and expired. Please try the ISBN again.": "La recherche a pris trop de temps et a expiré. Veuillez ressaisir l'ISBN.",
   "The second source is used automatically as a fallback if the first finds nothing.": "La seconde source est utilisée automatiquement en repli si la première ne trouve rien.",
   "This browser doesn't allow camera access from this page. Use the manual entry below.": "Ce navigateur ne permet pas l'accès à la caméra depuis cette page. Utilisez la saisie manuelle ci-dessous.",
   "This image's format could not be read (corrupted file or unsupported format).": "Le format de cette image n'a pas pu être lu (fichier corrompu ou format non supporté).",
@@ -191,7 +192,7 @@
   "the same title and the same volume": "le même titre et le même tome",
   "this page isn't served over HTTPS ({host}).": "cette page n'est pas servie en HTTPS ({host}).",
   "unknown": "inconnu",
-  "{failed_source} did not respond. {other_source} was queried as a fallback but doesn't know this ISBN. You can add the book manually.": "{failed_source} n'a pas répondu. {other_source} a été interrogée en repli, mais ne connaît pas cet ISBN. Vous pouvez ajouter l'ouvrage manuellement.",
+  "{failed_source} did not respond after {attempts} attempts. {other_source} was queried as a fallback but doesn't know this ISBN. You can add the book manually.": "{failed_source} n'a pas répondu après {attempts} essais. {other_source} a été interrogée en repli, mais ne connaît pas cet ISBN. Vous pouvez ajouter l'ouvrage manuellement.",
   "{n} book": "{n} ouvrage",
   "{n} book currently saved.": "{n} ouvrage actuellement enregistré.",
   "{n} book imported.": "{n} ouvrage importé.",
@@ -205,5 +206,6 @@
   "{n} owned volume": "{n} tome possédé",
   "{n} owned volumes": "{n} tomes possédés",
   "{n} volume": "{n} tome",
-  "{n} volumes": "{n} tomes"
+  "{n} volumes": "{n} tomes",
+  "{source} isn't responding — retrying (attempt {attempt}/{max_attempts})…": "{source} ne répond pas — nouvel essai (tentative {attempt}/{max_attempts})…"
 }
