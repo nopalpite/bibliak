@@ -79,6 +79,7 @@
     permissionDenied: {{ t('Camera access denied. Open the site settings (icon next to the URL) and allow the camera, then try again.')|tojson }},
     noCameraFound: {{ t('No camera detected on this device.')|tojson }},
     cameraInUse: {{ t('The camera is already in use by another application. Close it and try again.')|tojson }},
+    cameraStartFailed: {{ t('The camera could not be started (a temporary hardware or OS issue). Try again, or use the manual entry below.')|tojson }},
     cameraAccessError: {{ t('Could not access the camera ({details}). Use the manual entry below.')|tojson }},
   };
 
@@ -149,6 +150,8 @@
         showCameraError(SCAN_I18N.noCameraFound);
       } else if (text.includes('NotReadableError')) {
         showCameraError(SCAN_I18N.cameraInUse);
+      } else if (text.includes('AbortError')) {
+        showCameraError(SCAN_I18N.cameraStartFailed);
       } else {
         showCameraError(SCAN_I18N.cameraAccessError.replace('{details}', text));
       }

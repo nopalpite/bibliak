@@ -102,6 +102,36 @@ def test_search_gives_up_after_both_sources_exhaust_retries(client, db, monkeypa
     assert f"after {isbn_service.ISBN_SEARCH_MAX_ATTEMPTS} attempts each".encode() in final.data
 
 
+def test_error_message_blames_the_source_that_actually_failed_when_primary_fails(client, db, monkeypatch):
+    """Primary source (the user's configured priority) is unreachable; the
+    secondary is queried as a genuine fallback and doesn't know the ISBN."""
+    outcomes = [("network_error", None)] * isbn_service.ISBN_SEARCH_MAX_ATTEMPTS + [("not_found", None)]
+    _patch_attempt_source(monkeypatch, outcomes)
+
+    first = client.post("/scan/search", data={"isbn": "9782505004900"})
+    final = _drive_to_completion(client, first)
+
+    html = final.get_data(as_text=True)
+    assert "Open Library did not respond after 5 attempts" in html
+    assert "Google Books was queried as a fallback" in html
+
+
+def test_error_message_blames_the_source_that_actually_failed_when_fallback_fails(client, db, monkeypatch):
+    """Regression test: the primary source (openlibrary, the configured
+    priority) responds fine and simply doesn't know the ISBN; it's the
+    *secondary* source that's actually unreachable. The message must not
+    claim the primary "was queried as a fallback" — it was tried first."""
+    outcomes = [("not_found", None)] + [("network_error", None)] * isbn_service.ISBN_SEARCH_MAX_ATTEMPTS
+    _patch_attempt_source(monkeypatch, outcomes)
+
+    first = client.post("/scan/search", data={"isbn": "9782505004900"})
+    final = _drive_to_completion(client, first)
+
+    html = final.get_data(as_text=True)
+    assert "Open Library doesn" in html and "know this ISBN" in html  # Jinja escapes the apostrophe
+    assert "The fallback source, Google Books, did not respond after 5 attempts" in html
+
+
 def test_retry_without_prior_search_shows_expired_message(client, db):
     response = client.post("/scan/search/retry")
     assert response.status_code == 200

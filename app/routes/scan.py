@@ -94,23 +94,38 @@ def _search_step(state):
 
 
 def _final_error_message(state):
-    failed = state["network_failed"]
+    """Builds the error shown once both sources are exhausted.
 
-    if len(failed) == len(state["sources"]):
+    The two sources are tried in the user's configured priority order
+    (state["sources"][0] is the primary, [1] the fallback) — the wording
+    must reflect which one actually failed to respond, since it isn't always
+    the primary (e.g. the primary can respond fine and simply not know the
+    ISBN, while the fallback is the one that's unreachable)."""
+    primary_key, secondary_key = state["sources"]
+    primary_name = SOURCE_NAMES[primary_key]
+    secondary_name = SOURCE_NAMES[secondary_key]
+    primary_failed = primary_key in state["network_failed"]
+    secondary_failed = secondary_key in state["network_failed"]
+
+    if primary_failed and secondary_failed:
         return t(
-            "Could not reach Open Library or Google Books after {attempts} attempts each "
+            "Could not reach {primary} or {secondary} after {attempts} attempts each "
             "(no response or connection unavailable). Try again shortly, or add the book manually.",
-            attempts=ISBN_SEARCH_MAX_ATTEMPTS,
+            primary=primary_name, secondary=secondary_name, attempts=ISBN_SEARCH_MAX_ATTEMPTS,
         )
 
-    if failed:
-        failed_source = SOURCE_NAMES[failed[0]]
-        other_key = next(s for s in state["sources"] if s not in failed)
-        other_source = SOURCE_NAMES[other_key]
+    if primary_failed:
         return t(
-            "{failed_source} did not respond after {attempts} attempts. {other_source} was queried as a "
+            "{primary} did not respond after {attempts} attempts. {secondary} was queried as a "
             "fallback but doesn't know this ISBN. You can add the book manually.",
-            failed_source=failed_source, other_source=other_source, attempts=ISBN_SEARCH_MAX_ATTEMPTS,
+            primary=primary_name, secondary=secondary_name, attempts=ISBN_SEARCH_MAX_ATTEMPTS,
+        )
+
+    if secondary_failed:
+        return t(
+            "{primary} doesn't know this ISBN. The fallback source, {secondary}, did not respond "
+            "after {attempts} attempts. You can add the book manually.",
+            primary=primary_name, secondary=secondary_name, attempts=ISBN_SEARCH_MAX_ATTEMPTS,
         )
 
     return t(
