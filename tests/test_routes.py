@@ -1,7 +1,8 @@
 import io
 import json
+import re
 
-from app.models import Book
+from app.models import Book, Tag
 
 
 def test_index_page_loads(client):
@@ -66,6 +67,39 @@ def test_delete_book_route(client, db):
     response = client.post(f"/books/{book_id}/delete")
     assert response.status_code == 302
     assert db.session.get(Book, book_id) is None
+
+
+def test_delete_confirm_survives_quotes_and_apostrophes_in_title(client, db):
+    """Regression test: the delete form's onsubmit embeds a |tojson payload.
+    tojson wraps its output in literal double quotes, so if the surrounding
+    HTML attribute is also double-quoted, a title containing a quote breaks
+    the attribute (and silently kills the confirm() dialog). The attribute
+    must be single-quoted and the payload must stay valid JSON no matter
+    what's in the title."""
+    tricky_title = """Test O'Brien "Special" Édition"""
+    create = client.post("/books/new", data={"title": tricky_title, "item_type": "BD"})
+    book_id = int(create.location.rstrip("/").rsplit("/", 1)[-1])
+
+    html = client.get(f"/books/{book_id}").get_data(as_text=True)
+
+    match = re.search(r"onsubmit='return confirm\((.*?)\);'", html)
+    assert match, "delete form's onsubmit attribute is missing or malformed"
+    message = json.loads(match.group(1))
+    assert tricky_title in message
+
+
+def test_reference_delete_confirm_survives_quotes_and_apostrophes_in_name(client, db):
+    tricky_label = """Tag O'Brien "Special\""""
+    tag = Tag(label=tricky_label)
+    db.session.add(tag)
+    db.session.commit()
+
+    html = client.get("/admin/tab/references").get_data(as_text=True)
+
+    match = re.search(r"onsubmit='return confirm\((.*?)\);'", html)
+    assert match, "reference delete form's onsubmit attribute is missing or malformed"
+    message = json.loads(match.group(1))
+    assert tricky_label in message
 
 
 def test_duplicate_submission_is_blocked_then_can_be_confirmed(client, db):
