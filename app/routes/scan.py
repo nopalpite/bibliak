@@ -81,8 +81,25 @@ def _search_step(state):
                 )
             state["network_failed"].append(source_key)
 
+        # Either the source doesn't know this ISBN, or it's unreachable and
+        # out of retries: either way we're moving to the next source. Say
+        # which of the two it was explicitly — a "doesn't know this ISBN"
+        # (no problem, just no data) must never read like a connection
+        # issue, and vice versa.
+        reason = "not_found" if status == "not_found" else "network_error"
         state["source_index"] += 1
         state["attempt"] = 1
+
+        if state["source_index"] < len(sources):
+            session["isbn_search"] = state
+            return render_template(
+                "partials/scan_switching_source.html",
+                reason=reason,
+                source_name=SOURCE_NAMES[source_key],
+                next_source_name=SOURCE_NAMES[sources[state["source_index"]]],
+                max_attempts=ISBN_SEARCH_MAX_ATTEMPTS,
+                delay_ms=ISBN_SEARCH_RETRY_DELAY_MS,
+            )
 
     session.pop("isbn_search", None)
     return render_template(

@@ -102,6 +102,33 @@ def test_search_gives_up_after_both_sources_exhaust_retries(client, db, monkeypa
     assert f"after {isbn_service.ISBN_SEARCH_MAX_ATTEMPTS} attempts each".encode() in final.data
 
 
+def test_shows_a_switching_message_when_primary_has_no_data(client, db, monkeypatch):
+    """A source that simply doesn't know the ISBN must never be described
+    the same way as a source that's unreachable — the wording must make the
+    "no data" case obviously different from a connection problem."""
+    _patch_attempt_source(monkeypatch, [("not_found", None)])
+
+    response = client.post("/scan/search", data={"isbn": "9782505004900"})
+    html = response.get_data(as_text=True)
+    assert "Open Library doesn" in html and "know this ISBN" in html  # Jinja escapes the apostrophe
+    assert "trying Google Books" in html
+    assert "isn't responding" not in html
+    assert "could not be reached" not in html
+
+
+def test_shows_a_switching_message_after_a_source_exhausts_its_retries(client, db, monkeypatch):
+    outcomes = [("network_error", None)] * isbn_service.ISBN_SEARCH_MAX_ATTEMPTS
+    _patch_attempt_source(monkeypatch, outcomes)
+
+    response = client.post("/scan/search", data={"isbn": "9782505004900"})
+    for _ in range(isbn_service.ISBN_SEARCH_MAX_ATTEMPTS - 1):
+        response = client.post("/scan/search/retry")
+
+    html = response.get_data(as_text=True)
+    assert "Open Library could not be reached after 5 attempts" in html
+    assert "trying Google Books" in html
+
+
 def test_error_message_blames_the_source_that_actually_failed_when_primary_fails(client, db, monkeypatch):
     """Primary source (the user's configured priority) is unreachable; the
     secondary is queried as a genuine fallback and doesn't know the ISBN."""

@@ -1,0 +1,17 @@
+<div class="card p-5 flex items-center gap-3"
+     hx-post="{{ url_for('scan.retry_search') }}"
+     hx-trigger="load delay:{{ delay_ms }}ms"
+     hx-target="#result-zone"
+     hx-swap="innerHTML">
+  {% if reason == 'not_found' %}
+  <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background: var(--foliage);"></span>
+  <p class="text-sm" style="color: var(--ink-muted);">
+    {{ t("{source} doesn't know this ISBN — trying {next_source}…", source=source_name, next_source=next_source_name) }}
+  </p>
+  {% else %}
+  <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background: var(--accent);"></span>
+  <p class="text-sm" style="color: var(--ink-muted);">
+    {{ t('{source} could not be reached after {max_attempts} attempts — trying {next_source}…', source=source_name, max_attempts=max_attempts, next_source=next_source_name) }}
+  </p>
+  {% endif %}
+</div>

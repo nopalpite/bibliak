@@ -209,5 +209,7 @@
   "{n} owned volumes": "{n} tomes possédés",
   "{n} volume": "{n} tome",
   "{n} volumes": "{n} tomes",
+  "{source} could not be reached after {max_attempts} attempts — trying {next_source}…": "{source} est injoignable après {max_attempts} essais — tentative avec {next_source}…",
+  "{source} doesn't know this ISBN — trying {next_source}…": "{source} ne connaît pas cet ISBN — tentative avec {next_source}…",
   "{source} isn't responding — retrying (attempt {attempt}/{max_attempts})…": "{source} ne répond pas — nouvel essai (tentative {attempt}/{max_attempts})…"
 }
