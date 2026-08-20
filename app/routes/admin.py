@@ -1,7 +1,7 @@
 import json
 from io import BytesIO
 
-from flask import Blueprint, render_template, request, send_file
+from flask import Blueprint, current_app, render_template, request, send_file
 
 from app.extensions import db
 from app.models import Book, Location, Publisher, Series, Tag
@@ -29,6 +29,7 @@ def _settings_context():
         "duplicate_detection_choices": settings_service.DUPLICATE_DETECTION_CHOICES,
         "language": settings_service.get_setting("language", "fr"),
         "available_languages": i18n_service.available_languages(),
+        "google_books_key_configured": bool(current_app.config.get("GOOGLE_BOOKS_API_KEY")),
     }
 
 

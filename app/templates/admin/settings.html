@@ -22,6 +22,9 @@
         <option value="googlebooks" {{ 'selected' if priority_api == 'googlebooks' }}>Google Books</option>
       </select>
       <p class="text-xs mt-1" style="color: var(--ink-muted);">{{ t('The second source is used automatically as a fallback if the first finds nothing.') }}</p>
+      {% if not google_books_key_configured %}
+      <p class="text-xs mt-1" style="color: var(--accent);">{{ t('No GOOGLE_BOOKS_API_KEY is configured: Google Books will be skipped entirely, regardless of this setting.') }}</p>
+      {% endif %}
     </div>
 
     <div>

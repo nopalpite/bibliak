@@ -6,7 +6,7 @@ from app.services.isbn_service import (
     ISBN_SEARCH_RETRY_DELAY_MS,
     SOURCE_NAMES,
     attempt_source,
-    source_order,
+    available_sources,
 )
 from app.services.settings_service import get_setting
 
@@ -30,7 +30,9 @@ def search_isbn():
 
     state = {
         "isbn": isbn,
-        "sources": source_order(get_setting("priority_api", "openlibrary")),
+        "sources": available_sources(
+            get_setting("priority_api", "openlibrary"), current_app.config.get("GOOGLE_BOOKS_API_KEY")
+        ),
         "source_index": 0,
         "attempt": 1,
         "network_failed": [],
@@ -111,13 +113,29 @@ def _search_step(state):
 
 
 def _final_error_message(state):
-    """Builds the error shown once both sources are exhausted.
+    """Builds the error shown once every available source is exhausted.
 
     The two sources are tried in the user's configured priority order
     (state["sources"][0] is the primary, [1] the fallback) — the wording
     must reflect which one actually failed to respond, since it isn't always
     the primary (e.g. the primary can respond fine and simply not know the
-    ISBN, while the fallback is the one that's unreachable)."""
+    ISBN, while the fallback is the one that's unreachable). Google Books is
+    absent from state["sources"] entirely when no API key is configured
+    (see isbn_service.available_sources), leaving Open Library as the sole
+    source to report on."""
+    if len(state["sources"]) == 1:
+        (primary_key,) = state["sources"]
+        primary_name = SOURCE_NAMES[primary_key]
+        if primary_key in state["network_failed"]:
+            return t(
+                "{primary} could not be reached after {attempts} attempts. You can add the book manually.",
+                primary=primary_name, attempts=ISBN_SEARCH_MAX_ATTEMPTS,
+            )
+        return t(
+            "No information found for this ISBN via {primary}. You can add the book manually.",
+            primary=primary_name,
+        )
+
     primary_key, secondary_key = state["sources"]
     primary_name = SOURCE_NAMES[primary_key]
     secondary_name = SOURCE_NAMES[secondary_key]

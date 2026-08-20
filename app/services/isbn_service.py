@@ -113,6 +113,21 @@ def source_order(priority_api):
     return order
 
 
+def available_sources(priority_api, google_api_key=None):
+    """Sources actually worth trying, in priority order.
+
+    Without an API key, Google Books' rate limit is low enough that in
+    practice it just fails outright rather than merely responding slower —
+    querying (and retrying) it anyway wastes every attempt for nothing. If
+    GOOGLE_BOOKS_API_KEY isn't configured, it's left out entirely rather
+    than attempted.
+    """
+    order = source_order(priority_api)
+    if not google_api_key:
+        order = [key for key in order if key != "googlebooks"]
+    return order
+
+
 def attempt_source(isbn, source_key, google_api_key=None):
     """Tries one source, once.
 

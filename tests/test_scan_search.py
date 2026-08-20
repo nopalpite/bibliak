@@ -1,4 +1,15 @@
+import pytest
+
 from app.services import isbn_service
+
+
+@pytest.fixture(autouse=True)
+def _google_books_key(app):
+    """Most tests below exercise the two-source fallback flow, so give them
+    a key by default (Google Books is otherwise skipped entirely — see
+    isbn_service.available_sources). Tests for the no-key behavior itself
+    override this to an empty string."""
+    app.config["GOOGLE_BOOKS_API_KEY"] = "test-key"
 
 
 def test_source_order_defaults_to_openlibrary_first():
@@ -7,6 +18,22 @@ def test_source_order_defaults_to_openlibrary_first():
 
 def test_source_order_can_be_reversed():
     assert isbn_service.source_order("googlebooks") == ["googlebooks", "openlibrary"]
+
+
+def test_available_sources_excludes_googlebooks_without_a_key():
+    assert isbn_service.available_sources("openlibrary", google_api_key=None) == ["openlibrary"]
+    assert isbn_service.available_sources("openlibrary", google_api_key="") == ["openlibrary"]
+
+
+def test_available_sources_includes_googlebooks_with_a_key():
+    assert isbn_service.available_sources("openlibrary", google_api_key="a-key") == [
+        "openlibrary", "googlebooks",
+    ]
+
+
+def test_available_sources_with_googlebooks_priority_and_no_key_still_excludes_it():
+    # Google Books is unusable without a key regardless of priority order.
+    assert isbn_service.available_sources("googlebooks", google_api_key=None) == ["openlibrary"]
 
 
 def test_attempt_source_ok(monkeypatch):
@@ -163,3 +190,30 @@ def test_retry_without_prior_search_shows_expired_message(client, db):
     response = client.post("/scan/search/retry")
     assert response.status_code == 200
     assert "expired".encode() in response.data
+
+
+def test_search_skips_google_books_entirely_when_no_api_key_configured(client, db, app, monkeypatch):
+    app.config["GOOGLE_BOOKS_API_KEY"] = ""
+    # Only one call should ever happen (for openlibrary) — a second call
+    # would mean Google Books was attempted despite having no key.
+    _patch_attempt_source(monkeypatch, [("not_found", None)])
+
+    response = client.post("/scan/search", data={"isbn": "9782505004900"})
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Google Books" not in html
+    assert "No information found for this ISBN via Open Library" in html
+
+
+def test_search_reports_a_single_source_network_failure_when_no_api_key_configured(client, db, app, monkeypatch):
+    app.config["GOOGLE_BOOKS_API_KEY"] = ""
+    outcomes = [("network_error", None)] * isbn_service.ISBN_SEARCH_MAX_ATTEMPTS
+    _patch_attempt_source(monkeypatch, outcomes)
+
+    first = client.post("/scan/search", data={"isbn": "9782505004900"})
+    final = _drive_to_completion(client, first)
+
+    html = final.get_data(as_text=True)
+    assert "Google Books" not in html
+    assert "Open Library could not be reached after 5 attempts" in html
