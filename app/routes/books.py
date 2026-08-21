@@ -2,7 +2,7 @@ from flask import Blueprint, redirect, render_template, request, session, url_fo
 
 from app.extensions import db
 from app.models import Author, Book, Location, Publisher, Series, Tag
-from app.services import book_service, image_service
+from app.services import book_service, image_service, openlibrary_contribute_service
 from app.services.i18n_service import t
 from app.services.search_service import group_by_series, search_books
 from app.services.settings_service import get_setting
@@ -185,7 +185,10 @@ def new():
 def detail(book_id):
     book = Book.query.get_or_404(book_id)
     return render_template(
-        "book_detail.html", book=book, image_error=request.args.get("image_error")
+        "book_detail.html",
+        book=book,
+        image_error=request.args.get("image_error"),
+        openlibrary_contribution_available=openlibrary_contribute_service.is_enabled(),
     )
 
 
@@ -247,6 +250,16 @@ def toggle_read(book_id):
     book = Book.query.get_or_404(book_id)
     book_service.toggle_read(book)
     return redirect(url_for("books.detail", book_id=book.id))
+
+
+@books_bp.route("/<int:book_id>/contribute-to-openlibrary", methods=["POST"])
+def contribute_to_openlibrary(book_id):
+    book = Book.query.get_or_404(book_id)
+    status, value = openlibrary_contribute_service.contribute_book(book)
+    if status == "ok":
+        book.openlibrary_edition_id = value
+        db.session.commit()
+    return render_template("partials/openlibrary_contribution_result.html", status=status, olid=value)
 
 
 def _form_data():

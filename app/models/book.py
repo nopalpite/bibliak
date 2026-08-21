@@ -44,6 +44,11 @@ class Book(db.Model):
     personal_notes = db.Column(db.Text, nullable=True)
     read = db.Column(db.Boolean, nullable=False, default=False)
 
+    # Set once this book has been contributed to Open Library (see
+    # openlibrary_contribute_service.py), so the action is never offered
+    # twice for the same book. Null until then.
+    openlibrary_edition_id = db.Column(db.String(20), nullable=True)
+
     date_added = db.Column(db.DateTime, default=_now)
     date_modified = db.Column(db.DateTime, default=_now, onupdate=_now)
 

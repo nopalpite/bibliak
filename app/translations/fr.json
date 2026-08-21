@@ -214,5 +214,19 @@
   "{primary} could not be reached after {attempts} attempts. You can add the book manually.": "{primary} est injoignable après {attempts} essais. Vous pouvez ajouter l'ouvrage manuellement.",
   "{source} could not be reached after {max_attempts} attempts — trying {next_source}…": "{source} est injoignable après {max_attempts} essais — tentative avec {next_source}…",
   "{source} doesn't know this ISBN — trying {next_source}…": "{source} ne connaît pas cet ISBN — tentative avec {next_source}…",
-  "{source} isn't responding — retrying (attempt {attempt}/{max_attempts})…": "{source} ne répond pas — nouvel essai (tentative {attempt}/{max_attempts})…"
+  "{source} isn't responding — retrying (attempt {attempt}/{max_attempts})…": "{source} ne répond pas — nouvel essai (tentative {attempt}/{max_attempts})…",
+  "Allow contributing missing books to Open Library": "Autoriser la contribution des ouvrages manquants à Open Library",
+  "Requires OPENLIBRARY_ACCESS_KEY and OPENLIBRARY_SECRET_KEY to be configured.": "Nécessite que OPENLIBRARY_ACCESS_KEY et OPENLIBRARY_SECRET_KEY soient configurées.",
+  "Adds a \"Contribute to Open Library\" action on each book's page, submitted under your configured Open Library account. Always asks for confirmation before sending anything.": "Ajoute une action « Contribuer à Open Library » sur la fiche de chaque ouvrage, envoyée sous ton compte Open Library configuré. Demande toujours confirmation avant d'envoyer quoi que ce soit.",
+  "Contribute this book to Open Library": "Contribuer cet ouvrage à Open Library",
+  "Contributed to Open Library.": "Contribué à Open Library.",
+  "View": "Voir",
+  "Contribute \"{title}\" to Open Library using your configured account? This sends the title, author(s), publisher, date and ISBN. Double-check first that this book isn't already listed there under a different edition.": "Contribuer « {title} » à Open Library avec ton compte configuré ? Seront envoyés : titre, auteur(s), éditeur, date et ISBN. Vérifie d'abord que cet ouvrage n'existe pas déjà sur Open Library sous une autre édition.",
+  "Added to Open Library.": "Ajouté à Open Library.",
+  "View on Open Library": "Voir sur Open Library",
+  "Open Library requires a full author name (first and last). Edit the book to add one, then try again.": "Open Library exige un nom d'auteur complet (prénom et nom). Modifiez l'ouvrage pour en ajouter un, puis réessayez.",
+  "Open Library requires an ISBN. Add one to this book, then try again.": "Open Library exige un ISBN. Ajoutez-en un à cet ouvrage, puis réessayez.",
+  "Open Library rejected the configured account credentials.": "Open Library a rejeté les identifiants du compte configuré.",
+  "Could not reach Open Library. Try again shortly.": "Impossible de contacter Open Library. Réessayez dans un instant.",
+  "Open Library did not accept the submission.": "Open Library n'a pas accepté l'envoi."
 }

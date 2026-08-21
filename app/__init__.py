@@ -76,5 +76,11 @@ def create_app(config_class=Config):
                     text("ALTER TABLE books ADD COLUMN read BOOLEAN NOT NULL DEFAULT 0")
                 )
             print("Ad-hoc migration applied: books.read")
+        if "openlibrary_edition_id" not in columns:
+            with db.engine.begin() as connection:
+                connection.execute(
+                    text("ALTER TABLE books ADD COLUMN openlibrary_edition_id VARCHAR(20)")
+                )
+            print("Ad-hoc migration applied: books.openlibrary_edition_id")
 
     return app

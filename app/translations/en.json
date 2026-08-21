@@ -214,5 +214,19 @@
   "{primary} could not be reached after {attempts} attempts. You can add the book manually.": "{primary} could not be reached after {attempts} attempts. You can add the book manually.",
   "{source} could not be reached after {max_attempts} attempts — trying {next_source}…": "{source} could not be reached after {max_attempts} attempts — trying {next_source}…",
   "{source} doesn't know this ISBN — trying {next_source}…": "{source} doesn't know this ISBN — trying {next_source}…",
-  "{source} isn't responding — retrying (attempt {attempt}/{max_attempts})…": "{source} isn't responding — retrying (attempt {attempt}/{max_attempts})…"
+  "{source} isn't responding — retrying (attempt {attempt}/{max_attempts})…": "{source} isn't responding — retrying (attempt {attempt}/{max_attempts})…",
+  "Allow contributing missing books to Open Library": "Allow contributing missing books to Open Library",
+  "Requires OPENLIBRARY_ACCESS_KEY and OPENLIBRARY_SECRET_KEY to be configured.": "Requires OPENLIBRARY_ACCESS_KEY and OPENLIBRARY_SECRET_KEY to be configured.",
+  "Adds a \"Contribute to Open Library\" action on each book's page, submitted under your configured Open Library account. Always asks for confirmation before sending anything.": "Adds a \"Contribute to Open Library\" action on each book's page, submitted under your configured Open Library account. Always asks for confirmation before sending anything.",
+  "Contribute this book to Open Library": "Contribute this book to Open Library",
+  "Contributed to Open Library.": "Contributed to Open Library.",
+  "View": "View",
+  "Contribute \"{title}\" to Open Library using your configured account? This sends the title, author(s), publisher, date and ISBN. Double-check first that this book isn't already listed there under a different edition.": "Contribute \"{title}\" to Open Library using your configured account? This sends the title, author(s), publisher, date and ISBN. Double-check first that this book isn't already listed there under a different edition.",
+  "Added to Open Library.": "Added to Open Library.",
+  "View on Open Library": "View on Open Library",
+  "Open Library requires a full author name (first and last). Edit the book to add one, then try again.": "Open Library requires a full author name (first and last). Edit the book to add one, then try again.",
+  "Open Library requires an ISBN. Add one to this book, then try again.": "Open Library requires an ISBN. Add one to this book, then try again.",
+  "Open Library rejected the configured account credentials.": "Open Library rejected the configured account credentials.",
+  "Could not reach Open Library. Try again shortly.": "Could not reach Open Library. Try again shortly.",
+  "Open Library did not accept the submission.": "Open Library did not accept the submission."
 }

@@ -98,6 +98,8 @@ services:
       PRIORITY_API: openlibrary                # openlibrary | googlebooks
       GOOGLE_BOOKS_API_KEY: ""                  # optional
       CONTACT_INFO: ""                          # optional, e.g. you@example.com
+      OPENLIBRARY_ACCESS_KEY: ""                 # optional, to contribute books to Open Library
+      OPENLIBRARY_SECRET_KEY: ""                 # optional, see above
       HOST_IP: ""                                # your server's LAN IP, e.g. 192.168.1.20
       HTTPS_AUTOSIGNE: "true"                    # "false" if a reverse proxy handles TLS
     restart: unless-stopped
@@ -116,8 +118,9 @@ All variables are read from `.env` (copied from `.env.example`). None are requir
 | `SECRET_KEY` | `change-me-in-production` | Flask session signing key. Only used for the short-lived scan pre-fill session; low-stakes here, but worth setting to a random value (`python -c "import secrets; print(secrets.token_hex(32))"`) if the app is reachable beyond your own machine. |
 | `DATABASE_PATH` | `instance/biblio.sqlite3` | Path to the SQLite database file, relative to the project root. With Docker, this lives inside the container at that path, which is mounted to `./data/instance/` on the host — you shouldn't need to change it. |
 | `PRIORITY_API` | `openlibrary` | Which ISBN metadata source to try first: `openlibrary` or `googlebooks`. Also configurable at runtime from Administration > Settings (that setting takes precedence once set). |
-| `GOOGLE_BOOKS_API_KEY` | *(empty)* | Optional Google Books API key, for higher request quotas. Not required — Google Books works without a key at a lower rate limit. |
+| `GOOGLE_BOOKS_API_KEY` | *(empty)* | Google Books API key. Without a key, Google Books' rate limit is low enough to be unusable in practice, so it's skipped entirely (Open Library is used alone) until one is set. |
 | `CONTACT_INFO` | *(empty)* | An email or phone number sent in the `User-Agent` header to Open Library / Google Books. Recommended: Open Library grants a 3x higher rate limit (3 req/s instead of 1) to identified requests. |
+| `OPENLIBRARY_ACCESS_KEY` / `OPENLIBRARY_SECRET_KEY` | *(empty)* | Your Open Library account's S3-style access/secret key pair (found in your account settings on openlibrary.org — not your password). Optional: enables a "Contribute this book to Open Library" action on the book detail page, letting you add books Open Library doesn't have yet under your own account. Also requires turning the feature on from Administration > Settings (off by default even when configured), and is always sent one book at a time with an explicit confirmation — never automatic or in bulk. |
 | `HOST_IP` | *(empty)* | Local IP address of the machine hosting Docker (e.g. `192.168.1.20`). Needed so the self-signed HTTPS certificate is valid for that address too, not just `localhost` — required for camera scanning from a smartphone on the network. |
 | `HTTPS_AUTOSIGNE` | `true` | `true`: the container generates and serves its own self-signed HTTPS certificate. `false`: TLS is assumed to be terminated upstream (reverse proxy); the container serves plain HTTP on port 8000. See [Running behind a reverse proxy](#running-behind-a-reverse-proxy) above. |
 

@@ -109,6 +109,24 @@
           </button>
         </form>
       </div>
+
+      {% if book.openlibrary_edition_id %}
+      <p class="text-xs mt-3" style="color: var(--ink-muted);">
+        {{ t('Contributed to Open Library.') }}
+        <a href="https://openlibrary.org/books/{{ book.openlibrary_edition_id }}" target="_blank" rel="noopener" class="underline">{{ t('View') }}</a>
+      </p>
+      {% elif openlibrary_contribution_available %}
+      <div class="mt-3">
+        <form hx-post="{{ url_for('books.contribute_to_openlibrary', book_id=book.id) }}"
+              hx-target="#openlibrary-result" hx-swap="innerHTML"
+              onsubmit='return confirm({{ t("Contribute \"{title}\" to Open Library using your configured account? This sends the title, author(s), publisher, date and ISBN. Double-check first that this book isn\'t already listed there under a different edition.", title=book.title)|tojson }});'>
+          <button type="submit" class="text-xs underline" style="color: var(--foliage);">
+            {{ t('Contribute this book to Open Library') }}
+          </button>
+        </form>
+        <div id="openlibrary-result"></div>
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>

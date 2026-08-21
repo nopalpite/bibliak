@@ -1,0 +1,26 @@
+{% if status == 'ok' %}
+<p class="text-xs mt-2" style="color: var(--foliage);">
+  ✓ {{ t('Added to Open Library.') }}
+  <a href="https://openlibrary.org/books/{{ olid }}" target="_blank" rel="noopener" class="underline">{{ t('View on Open Library') }}</a>
+</p>
+{% elif status == 'missing_author' %}
+<p class="text-xs mt-2" style="color: var(--accent);">
+  ⚠️ {{ t('Open Library requires a full author name (first and last). Edit the book to add one, then try again.') }}
+</p>
+{% elif status == 'missing_isbn' %}
+<p class="text-xs mt-2" style="color: var(--accent);">
+  ⚠️ {{ t('Open Library requires an ISBN. Add one to this book, then try again.') }}
+</p>
+{% elif status == 'auth_failed' %}
+<p class="text-xs mt-2" style="color: var(--accent);">
+  ⚠️ {{ t('Open Library rejected the configured account credentials.') }}
+</p>
+{% elif status == 'network_error' %}
+<p class="text-xs mt-2" style="color: var(--accent);">
+  ⚠️ {{ t('Could not reach Open Library. Try again shortly.') }}
+</p>
+{% else %}
+<p class="text-xs mt-2" style="color: var(--accent);">
+  ⚠️ {{ t('Open Library did not accept the submission.') }}
+</p>
+{% endif %}
