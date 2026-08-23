@@ -374,8 +374,8 @@ def _values_from_prefill(prefill):
 
 
 def _resolve_prefill_publisher(name):
-    """The ISBN scan returns a publisher name as free text (Open Library /
-    Google Books), but the form now requires choosing an existing publisher.
+    """The ISBN scan returns a publisher name as free text (Open Library),
+    but the form now requires choosing an existing publisher.
     It is resolved (or created) here so it's already selectable when the
     form loads, rather than losing this information or reopening a text
     field for this one case."""

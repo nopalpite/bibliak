@@ -12,7 +12,6 @@ from app.models import Setting
 DEFAULT_VALUES = {
     "item_types": ["BD", "Manga", "Comics", "Roman", "Autre"],
     "conditions": ["Neuf", "Bon état", "Usagé", "Abîmé"],
-    "priority_api": "openlibrary",
     "default_view": "grid",
     "language": "en",
     # Duplicate detection policy, applied uniformly wherever a book is

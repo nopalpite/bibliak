@@ -9,7 +9,7 @@ Built to the agreed spec: Flask + SQLite, HTMX + Alpine.js for dynamic interacti
 - Collection browsable as a grid (covers), a list (table), or **shelves** (grouped by series, sorted by volume — with a dedicated page per series showing missing volumes if the total volume count is set)
 - Instant search (title, author, publisher, series, ISBN) + combinable filters (type, series, publisher, tag, location, condition) + sorting
 - Manual book entry with tags, location, authors, autocomplete on existing reference data. Series and publisher must be chosen from existing entries (dropdown, with quick creation via a "+" button without leaving the page) to avoid duplicates caused by typos. The volume number is set via an incremental stepper (+/-) as well as direct input.
-- Add by barcode scan (smartphone camera) or manual ISBN entry (desktop/tablet), with automatic metadata retrieval via Open Library (falling back to Google Books)
+- Add by barcode scan (smartphone camera) or manual ISBN entry (desktop/tablet), with automatic metadata retrieval via Open Library
 - Automatic cover retrieval, or manual photo capture / upload
 - Single-page administration (tabs, no page reload): general settings, reference data management (types, conditions, publishers, series, tags, locations — with duplicate merging), JSON export/import of the whole collection
 - **Duplicate detection**, applied uniformly everywhere (manual add, scan, import): by ISBN first, falling back to title + volume if the ISBN is missing. Live warning while typing, blocked on save with the option to confirm anyway, duplicates automatically skipped on import. Policy is configurable (or can be disabled) from Administration > Settings.
@@ -95,8 +95,6 @@ services:
     environment:
       SECRET_KEY: change-me-in-production      # set a real random value
       DATABASE_PATH: instance/biblio.sqlite3
-      PRIORITY_API: openlibrary                # openlibrary | googlebooks
-      GOOGLE_BOOKS_API_KEY: ""                  # optional
       CONTACT_INFO: ""                          # optional, e.g. you@example.com
       OPENLIBRARY_ACCESS_KEY: ""                 # optional, to contribute books to Open Library
       OPENLIBRARY_SECRET_KEY: ""                 # optional, see above
@@ -117,9 +115,7 @@ All variables are read from `.env` (copied from `.env.example`). None are requir
 |---|---|---|
 | `SECRET_KEY` | `change-me-in-production` | Flask session signing key. Only used for the short-lived scan pre-fill session; low-stakes here, but worth setting to a random value (`python -c "import secrets; print(secrets.token_hex(32))"`) if the app is reachable beyond your own machine. |
 | `DATABASE_PATH` | `instance/biblio.sqlite3` | Path to the SQLite database file, relative to the project root. With Docker, this lives inside the container at that path, which is mounted to `./data/instance/` on the host — you shouldn't need to change it. |
-| `PRIORITY_API` | `openlibrary` | Which ISBN metadata source to try first: `openlibrary` or `googlebooks`. Also configurable at runtime from Administration > Settings (that setting takes precedence once set). |
-| `GOOGLE_BOOKS_API_KEY` | *(empty)* | Google Books API key. Without a key, Google Books' rate limit is low enough to be unusable in practice, so it's skipped entirely (Open Library is used alone) until one is set. |
-| `CONTACT_INFO` | *(empty)* | An email or phone number sent in the `User-Agent` header to Open Library / Google Books. Recommended: Open Library grants a 3x higher rate limit (3 req/s instead of 1) to identified requests. |
+| `CONTACT_INFO` | *(empty)* | An email or phone number sent in the `User-Agent` header to Open Library. Recommended: Open Library grants a 3x higher rate limit (3 req/s instead of 1) to identified requests. |
 | `OPENLIBRARY_ACCESS_KEY` / `OPENLIBRARY_SECRET_KEY` | *(empty)* | Your Internet Archive account's S3-style access/secret key pair — see [Getting Open Library S3 keys](#getting-open-library-s3-keys) below. **Not** your Open Library email/password: those are rejected outright. Optional: enables a "Contribute this book to Open Library" action on the book detail page, letting you add books Open Library doesn't have yet under your own account. Also requires turning the feature on from Administration > Settings (off by default even when configured), and is always sent one book at a time with an explicit confirmation — never automatic or in bulk. |
 | `HOST_IP` | *(empty)* | Local IP address of the machine hosting Docker (e.g. `192.168.1.20`). Needed so the self-signed HTTPS certificate is valid for that address too, not just `localhost` — required for camera scanning from a smartphone on the network. |
 | `HTTPS_AUTOSIGNE` | `true` | `true`: the container generates and serves its own self-signed HTTPS certificate. `false`: TLS is assumed to be terminated upstream (reverse proxy); the container serves plain HTTP on port 8000. See [Running behind a reverse proxy](#running-behind-a-reverse-proxy) above. |
@@ -188,11 +184,8 @@ docker compose exec biblio-app flask db migrate -m "change description"
 docker compose exec biblio-app flask db upgrade
 ```
 
-## ISBN metadata sources
+## ISBN metadata source
 
-- [Open Library Books API](https://openlibrary.org/dev/docs/api/books) — free, no key required
-- [Google Books API](https://developers.google.com/books) — free, optional key (`GOOGLE_BOOKS_API_KEY` in `.env`) for higher quotas
-
-The priority source is configured from the Administration > Settings page.
+Metadata (title, authors, publisher, cover...) is retrieved from the [Open Library Books API](https://openlibrary.org/dev/docs/api/books) — free, no key required.
 
 Each call sends a `User-Agent` header identifying the app. Open Library recommends including a contact (email or phone) in it: in exchange, the rate limit goes from 1 to 3 requests per second, and they can warn you in case of abnormal volume instead of silently blocking you. Set `CONTACT_INFO` in `.env` to benefit from this (optional, but recommended if you scan a lot of books in a row).

@@ -1,78 +1,43 @@
-import pytest
-
 from app.services import isbn_service
 
 
-@pytest.fixture(autouse=True)
-def _google_books_key(app):
-    """Most tests below exercise the two-source fallback flow, so give them
-    a key by default (Google Books is otherwise skipped entirely — see
-    isbn_service.available_sources). Tests for the no-key behavior itself
-    override this to an empty string."""
-    app.config["GOOGLE_BOOKS_API_KEY"] = "test-key"
-
-
-def test_source_order_defaults_to_openlibrary_first():
-    assert isbn_service.source_order("openlibrary") == ["openlibrary", "googlebooks"]
-
-
-def test_source_order_can_be_reversed():
-    assert isbn_service.source_order("googlebooks") == ["googlebooks", "openlibrary"]
-
-
-def test_available_sources_excludes_googlebooks_without_a_key():
-    assert isbn_service.available_sources("openlibrary", google_api_key=None) == ["openlibrary"]
-    assert isbn_service.available_sources("openlibrary", google_api_key="") == ["openlibrary"]
-
-
-def test_available_sources_includes_googlebooks_with_a_key():
-    assert isbn_service.available_sources("openlibrary", google_api_key="a-key") == [
-        "openlibrary", "googlebooks",
-    ]
-
-
-def test_available_sources_with_googlebooks_priority_and_no_key_still_excludes_it():
-    # Google Books is unusable without a key regardless of priority order.
-    assert isbn_service.available_sources("googlebooks", google_api_key=None) == ["openlibrary"]
-
-
-def test_attempt_source_ok(monkeypatch):
+def test_attempt_search_ok(monkeypatch):
     monkeypatch.setattr(isbn_service, "_from_open_library", lambda isbn: {"title": "XIII"})
-    status, result = isbn_service.attempt_source("978-2505004900", "openlibrary")
+    status, result = isbn_service.attempt_search("978-2505004900")
     assert status == "ok"
     assert result["title"] == "XIII"
     assert result["isbn"] == "9782505004900"  # dashes stripped
 
 
-def test_attempt_source_not_found(monkeypatch):
+def test_attempt_search_not_found(monkeypatch):
     monkeypatch.setattr(isbn_service, "_from_open_library", lambda isbn: None)
-    status, result = isbn_service.attempt_source("9782505004900", "openlibrary")
+    status, result = isbn_service.attempt_search("9782505004900")
     assert status == "not_found"
     assert result is None
 
 
-def test_attempt_source_network_error(monkeypatch):
+def test_attempt_search_network_error(monkeypatch):
     def raise_error(isbn):
         raise isbn_service.requests.ConnectionError("boom")
 
     monkeypatch.setattr(isbn_service, "_from_open_library", raise_error)
-    status, result = isbn_service.attempt_source("9782505004900", "openlibrary")
+    status, result = isbn_service.attempt_search("9782505004900")
     assert status == "network_error"
     assert result is None
 
 
-def _patch_attempt_source(monkeypatch, outcomes):
+def _patch_attempt_search(monkeypatch, outcomes):
     """outcomes: list of (status, result) tuples returned on successive calls."""
     calls = iter(outcomes)
 
-    def fake_attempt_source(isbn, source_key, google_api_key=None):
+    def fake_attempt_search(isbn):
         return next(calls)
 
-    monkeypatch.setattr("app.routes.scan.attempt_source", fake_attempt_source)
+    monkeypatch.setattr("app.routes.scan.attempt_search", fake_attempt_search)
 
 
 def test_search_succeeds_on_first_try(client, db, monkeypatch):
-    _patch_attempt_source(monkeypatch, [("ok", {"title": "XIII", "source": "Open Library"})])
+    _patch_attempt_search(monkeypatch, [("ok", {"title": "XIII", "source": "Open Library"})])
 
     response = client.post("/scan/search", data={"isbn": "9782505004900"})
     assert response.status_code == 200
@@ -80,7 +45,7 @@ def test_search_succeeds_on_first_try(client, db, monkeypatch):
 
 
 def test_search_shows_a_retrying_message_then_succeeds_on_the_next_step(client, db, monkeypatch):
-    _patch_attempt_source(monkeypatch, [("network_error", None)])
+    _patch_attempt_search(monkeypatch, [("network_error", None)])
 
     first = client.post("/scan/search", data={"isbn": "9782505004900"})
     assert first.status_code == 200
@@ -88,7 +53,7 @@ def test_search_shows_a_retrying_message_then_succeeds_on_the_next_step(client, 
     assert "Open Library" in html
     assert "1/5" not in html and "2/5" in html  # attempt shown is the upcoming one
 
-    _patch_attempt_source(monkeypatch, [("ok", {"title": "XIII", "source": "Open Library"})])
+    _patch_attempt_search(monkeypatch, [("ok", {"title": "XIII", "source": "Open Library"})])
     second = client.post("/scan/search/retry")
     assert second.status_code == 200
     assert "XIII".encode() in second.data
@@ -105,115 +70,25 @@ def _drive_to_completion(client, response, max_steps=20):
     return response
 
 
-def test_search_falls_back_to_second_source_after_max_attempts(client, db, monkeypatch):
-    outcomes = [("network_error", None)] * isbn_service.ISBN_SEARCH_MAX_ATTEMPTS + [
-        ("ok", {"title": "Found via fallback", "source": "Google Books"})
-    ]
-    _patch_attempt_source(monkeypatch, outcomes)
-
-    first = client.post("/scan/search", data={"isbn": "9782505004900"})
-    final = _drive_to_completion(client, first)
-
-    assert final.status_code == 200
-    assert "Found via fallback".encode() in final.data
-
-
-def test_search_gives_up_after_both_sources_exhaust_retries(client, db, monkeypatch):
-    outcomes = [("network_error", None)] * (isbn_service.ISBN_SEARCH_MAX_ATTEMPTS * 2)
-    _patch_attempt_source(monkeypatch, outcomes)
-
-    first = client.post("/scan/search", data={"isbn": "9782505004900"})
-    final = _drive_to_completion(client, first)
-
-    assert final.status_code == 200
-    assert f"after {isbn_service.ISBN_SEARCH_MAX_ATTEMPTS} attempts each".encode() in final.data
-
-
-def test_shows_a_switching_message_when_primary_has_no_data(client, db, monkeypatch):
-    """A source that simply doesn't know the ISBN must never be described
-    the same way as a source that's unreachable — the wording must make the
-    "no data" case obviously different from a connection problem."""
-    _patch_attempt_source(monkeypatch, [("not_found", None)])
-
-    response = client.post("/scan/search", data={"isbn": "9782505004900"})
-    html = response.get_data(as_text=True)
-    assert "Open Library doesn" in html and "know this ISBN" in html  # Jinja escapes the apostrophe
-    assert "trying Google Books" in html
-    assert "isn't responding" not in html
-    assert "could not be reached" not in html
-
-
-def test_shows_a_switching_message_after_a_source_exhausts_its_retries(client, db, monkeypatch):
+def test_search_gives_up_after_max_attempts(client, db, monkeypatch):
     outcomes = [("network_error", None)] * isbn_service.ISBN_SEARCH_MAX_ATTEMPTS
-    _patch_attempt_source(monkeypatch, outcomes)
+    _patch_attempt_search(monkeypatch, outcomes)
+
+    first = client.post("/scan/search", data={"isbn": "9782505004900"})
+    final = _drive_to_completion(client, first)
+
+    assert final.status_code == 200
+    assert f"after {isbn_service.ISBN_SEARCH_MAX_ATTEMPTS} attempts".encode() in final.data
+
+
+def test_search_not_found_shows_generic_message(client, db, monkeypatch):
+    _patch_attempt_search(monkeypatch, [("not_found", None)])
 
     response = client.post("/scan/search", data={"isbn": "9782505004900"})
-    for _ in range(isbn_service.ISBN_SEARCH_MAX_ATTEMPTS - 1):
-        response = client.post("/scan/search/retry")
-
-    html = response.get_data(as_text=True)
-    assert "Open Library could not be reached after 5 attempts" in html
-    assert "trying Google Books" in html
-
-
-def test_error_message_blames_the_source_that_actually_failed_when_primary_fails(client, db, monkeypatch):
-    """Primary source (the user's configured priority) is unreachable; the
-    secondary is queried as a genuine fallback and doesn't know the ISBN."""
-    outcomes = [("network_error", None)] * isbn_service.ISBN_SEARCH_MAX_ATTEMPTS + [("not_found", None)]
-    _patch_attempt_source(monkeypatch, outcomes)
-
-    first = client.post("/scan/search", data={"isbn": "9782505004900"})
-    final = _drive_to_completion(client, first)
-
-    html = final.get_data(as_text=True)
-    assert "Open Library did not respond after 5 attempts" in html
-    assert "Google Books was queried as a fallback" in html
-
-
-def test_error_message_blames_the_source_that_actually_failed_when_fallback_fails(client, db, monkeypatch):
-    """Regression test: the primary source (openlibrary, the configured
-    priority) responds fine and simply doesn't know the ISBN; it's the
-    *secondary* source that's actually unreachable. The message must not
-    claim the primary "was queried as a fallback" — it was tried first."""
-    outcomes = [("not_found", None)] + [("network_error", None)] * isbn_service.ISBN_SEARCH_MAX_ATTEMPTS
-    _patch_attempt_source(monkeypatch, outcomes)
-
-    first = client.post("/scan/search", data={"isbn": "9782505004900"})
-    final = _drive_to_completion(client, first)
-
-    html = final.get_data(as_text=True)
-    assert "Open Library doesn" in html and "know this ISBN" in html  # Jinja escapes the apostrophe
-    assert "The fallback source, Google Books, did not respond after 5 attempts" in html
+    assert b"No information found for this ISBN" in response.data
 
 
 def test_retry_without_prior_search_shows_expired_message(client, db):
     response = client.post("/scan/search/retry")
     assert response.status_code == 200
     assert "expired".encode() in response.data
-
-
-def test_search_skips_google_books_entirely_when_no_api_key_configured(client, db, app, monkeypatch):
-    app.config["GOOGLE_BOOKS_API_KEY"] = ""
-    # Only one call should ever happen (for openlibrary) — a second call
-    # would mean Google Books was attempted despite having no key.
-    _patch_attempt_source(monkeypatch, [("not_found", None)])
-
-    response = client.post("/scan/search", data={"isbn": "9782505004900"})
-    html = response.get_data(as_text=True)
-
-    assert response.status_code == 200
-    assert "Google Books" not in html
-    assert "No information found for this ISBN via Open Library" in html
-
-
-def test_search_reports_a_single_source_network_failure_when_no_api_key_configured(client, db, app, monkeypatch):
-    app.config["GOOGLE_BOOKS_API_KEY"] = ""
-    outcomes = [("network_error", None)] * isbn_service.ISBN_SEARCH_MAX_ATTEMPTS
-    _patch_attempt_source(monkeypatch, outcomes)
-
-    first = client.post("/scan/search", data={"isbn": "9782505004900"})
-    final = _drive_to_completion(client, first)
-
-    html = final.get_data(as_text=True)
-    assert "Google Books" not in html
-    assert "Open Library could not be reached after 5 attempts" in html

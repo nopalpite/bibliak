@@ -54,9 +54,9 @@ def _resize_and_save(image):
 
 
 def download_cover(url):
-    """Downloads an image from a remote URL (e.g. Open Library / Google
-    Books, or a manually pasted link). Returns (filename, error): exactly
-    one of the two is always None."""
+    """Downloads an image from a remote URL (e.g. Open Library, or a
+    manually pasted link). Returns (filename, error): exactly one of the
+    two is always None."""
     if not url:
         return None, None
 

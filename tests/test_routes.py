@@ -184,7 +184,6 @@ def test_admin_language_setting_changes_rendered_text(client, db):
         "/admin/settings",
         data={
             "language": "fr",
-            "priority_api": "openlibrary",
             "default_view": "grid",
             "duplicate_detection": "isbn_and_title",
         },

@@ -16,18 +16,6 @@
     </div>
 
     <div>
-      <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Priority source for ISBN metadata retrieval') }}</label>
-      <select name="priority_api" class="w-full sm:w-72 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-        <option value="openlibrary" {{ 'selected' if priority_api == 'openlibrary' }}>Open Library</option>
-        <option value="googlebooks" {{ 'selected' if priority_api == 'googlebooks' }}>Google Books</option>
-      </select>
-      <p class="text-xs mt-1" style="color: var(--ink-muted);">{{ t('The second source is used automatically as a fallback if the first finds nothing.') }}</p>
-      {% if not google_books_key_configured %}
-      <p class="text-xs mt-1" style="color: var(--accent);">{{ t('No GOOGLE_BOOKS_API_KEY is configured: Google Books will be skipped entirely, regardless of this setting.') }}</p>
-      {% endif %}
-    </div>
-
-    <div>
       <label class="flex items-center gap-2 text-sm">
         <input type="checkbox" name="openlibrary_contribution_enabled"
                {{ 'checked' if openlibrary_contribution_enabled }}

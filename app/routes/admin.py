@@ -1,7 +1,7 @@
 import json
 from io import BytesIO
 
-from flask import Blueprint, current_app, render_template, request, send_file
+from flask import Blueprint, render_template, request, send_file
 
 from app.extensions import db
 from app.models import Book, Location, Publisher, Series, Tag
@@ -23,13 +23,11 @@ CONFIGURABLE_LISTS = ("item_types", "conditions")
 
 def _settings_context():
     return {
-        "priority_api": settings_service.get_setting("priority_api"),
         "default_view": settings_service.get_setting("default_view"),
         "duplicate_detection": settings_service.get_setting("duplicate_detection"),
         "duplicate_detection_choices": settings_service.DUPLICATE_DETECTION_CHOICES,
         "language": settings_service.get_setting("language", "fr"),
         "available_languages": i18n_service.available_languages(),
-        "google_books_key_configured": bool(current_app.config.get("GOOGLE_BOOKS_API_KEY")),
         "openlibrary_contribution_enabled": settings_service.get_setting("openlibrary_contribution_enabled", False),
         "openlibrary_keys_configured": openlibrary_contribute_service.is_configured(),
     }
@@ -76,7 +74,6 @@ def tab(name):
 
 @admin_bp.route("/settings", methods=["POST"])
 def save_settings():
-    settings_service.set_setting("priority_api", request.form.get("priority_api"))
     settings_service.set_setting("default_view", request.form.get("default_view"))
     settings_service.set_setting("duplicate_detection", request.form.get("duplicate_detection"))
     settings_service.set_setting("language", request.form.get("language"))
