@@ -223,5 +223,6 @@
   ", not your Open Library password.": ", not your Open Library password.",
   "No information found for this ISBN. You can add the book manually.": "No information found for this ISBN. You can add the book manually.",
   "Open Library could not be reached after {attempts} attempts. You can add the book manually.": "Open Library could not be reached after {attempts} attempts. You can add the book manually.",
-  "Open Library isn't responding — retrying (attempt {attempt}/{max_attempts})…": "Open Library isn't responding — retrying (attempt {attempt}/{max_attempts})…"
+  "Open Library isn't responding — retrying (attempt {attempt}/{max_attempts})…": "Open Library isn't responding — retrying (attempt {attempt}/{max_attempts})…",
+  "Open Library didn't create a new entry — it likely already has this book under a different edition. Check on openlibrary.org before trying again.": "Open Library didn't create a new entry — it likely already has this book under a different edition. Check on openlibrary.org before trying again."
 }

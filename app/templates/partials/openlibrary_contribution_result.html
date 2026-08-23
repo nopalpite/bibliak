@@ -22,6 +22,10 @@
 <p class="text-xs mt-2" style="color: var(--accent);">
   ⚠️ {{ t('Could not reach Open Library. Try again shortly.') }}
 </p>
+{% elif status == 'maybe_duplicate' %}
+<p class="text-xs mt-2" style="color: var(--accent);">
+  ⚠️ {{ t("Open Library didn't create a new entry — it likely already has this book under a different edition. Check on openlibrary.org before trying again.") }}
+</p>
 {% else %}
 <p class="text-xs mt-2" style="color: var(--accent);">
   ⚠️ {{ t('Open Library did not accept the submission.') }}

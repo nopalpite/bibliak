@@ -179,8 +179,11 @@ def contribute_book(book):
     - "missing_isbn": Open Library requires an ISBN-10/13
     - "auth_failed": the configured account credentials were rejected
     - "network_error": could not reach Open Library
-    - "rejected": Open Library responded but didn't redirect to a newly
-      created edition (unexpected server-side outcome)
+    - "maybe_duplicate": /books/add didn't redirect to a new edition at
+      all — per openlibrary-client's own handling of this exact case,
+      that usually means Open Library already has a matching book and
+      silently declined to create a duplicate
+    - "rejected": some other unexpected server-side outcome
     """
     if not is_configured():
         return "not_configured", None, None
@@ -227,6 +230,8 @@ def contribute_book(book):
             "Open Library did not return an edition ID: final URL %s, HTTP %s, body: %s",
             response.url, response.status_code, _readable_error_snippet(response.text),
         )
+        if response.url.rstrip("/").endswith("/books/add"):
+            return "maybe_duplicate", None, None
         return "rejected", None, None
 
     cover_uploaded = None

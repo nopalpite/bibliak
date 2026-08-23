@@ -132,11 +132,14 @@ def test_contribute_book_rejected_when_response_has_no_edition_olid(app, db, mon
     assert ol_service.contribute_book(book) == ("rejected", None, None)
 
 
-def test_contribute_book_rejected_when_response_stayed_on_the_add_form(app, db, monkeypatch):
+def test_contribute_book_reports_maybe_duplicate_when_response_stayed_on_the_add_form(app, db, monkeypatch):
     """Regression test: a response that never redirected past /books/add
     must not be mistaken for success just because "add" happens to match a
     loose "any word after /books/" pattern — this used to silently report
-    ("ok", "add", ...), breaking both the "View" link and the cover upload."""
+    ("ok", "add", ...), breaking both the "View" link and the cover upload.
+    Per openlibrary-client's own handling of this exact case (it raises
+    "Creation failed, book may already exist!"), staying on /books/add is
+    reported as "maybe_duplicate" rather than a generic "rejected"."""
     settings_service.set_setting("openlibrary_contribution_enabled", True)
     monkeypatch.setattr(ol_service, "_login", lambda session: True)
     monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
@@ -149,7 +152,7 @@ def test_contribute_book_rejected_when_response_stayed_on_the_add_form(app, db, 
     monkeypatch.setattr(requests.Session, "post", lambda self, *a, **k: FakeResponse())
 
     book = _book(db)
-    assert ol_service.contribute_book(book) == ("rejected", None, None)
+    assert ol_service.contribute_book(book) == ("maybe_duplicate", None, None)
 
 
 def test_contribute_book_finds_the_olid_in_the_response_body_when_not_in_the_url(app, db, monkeypatch):
