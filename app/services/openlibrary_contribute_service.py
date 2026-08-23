@@ -105,6 +105,37 @@ def _find_author_key(session, name):
     return None
 
 
+def _find_matching_work(session, title, author_name):
+    """Looks up an existing Open Library Work with this exact title and
+    author, so a new edition can be attached to it instead of Open Library
+    silently declining to create what looks like a duplicate (this is
+    exactly the "not found by this ISBN, but the work exists under a
+    different edition" case — common for comics/manga poorly catalogued by
+    ISBN). Deliberately conservative: an exact (case-insensitive) title
+    match is required, not a fuzzy one — attaching to the wrong work would
+    be worse than not attaching at all."""
+    try:
+        response = session.get(
+            f"{BASE_URL}/search.json",
+            params={"title": title, "author": author_name, "limit": 5, "fields": "key,title,author_name"},
+            headers=_http_headers(),
+            timeout=TIMEOUT,
+        )
+        response.raise_for_status()
+    except requests.RequestException:
+        return None
+
+    target_title = title.strip().lower()
+    target_author = author_name.strip().lower()
+    for doc in response.json().get("docs", []):
+        doc_title = (doc.get("title") or "").strip().lower()
+        doc_authors = [a.strip().lower() for a in doc.get("author_name") or []]
+        if doc_title == target_title and target_author in doc_authors:
+            key = doc.get("key") or ""
+            return key.split("/")[-1] if key else None
+    return None
+
+
 def _add_cover(session, olid, cover_path):
     """Uploads a locally-stored cover image to the given edition, by
     sending its bytes directly rather than a URL — the app usually isn't
@@ -206,8 +237,13 @@ def contribute_book(book):
         author_olid = _find_author_key(session, author_name)
         author_key = f"/authors/{author_olid}" if author_olid else "__new__"
 
+        work_olid = _find_matching_work(session, book.title, author_name)
+        url = f"{BASE_URL}/books/add"
+        if work_olid:
+            url += f"?work=/works/{work_olid}"
+
         response = session.post(
-            f"{BASE_URL}/books/add",
+            url,
             data={
                 "title": book.title,
                 "author_name": author_name,

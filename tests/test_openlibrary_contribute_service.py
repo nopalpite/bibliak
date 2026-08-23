@@ -26,6 +26,7 @@ def _book(db, title="XIII", isbn="9782505004900", author_name="Jean Van Hamme", 
 def _make_ok(monkeypatch):
     monkeypatch.setattr(ol_service, "_login", lambda session: True)
     monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
+    monkeypatch.setattr(ol_service, "_find_matching_work", lambda session, title, author_name: None)
 
     class FakeResponse:
         url = "https://openlibrary.org/books/OL123M/XIII"
@@ -98,6 +99,7 @@ def test_contribute_book_network_error(app, db, monkeypatch):
     settings_service.set_setting("openlibrary_contribution_enabled", True)
     monkeypatch.setattr(ol_service, "_login", lambda session: True)
     monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
+    monkeypatch.setattr(ol_service, "_find_matching_work", lambda session, title, author_name: None)
 
     def raise_error(self, *args, **kwargs):
         raise requests.ConnectionError("boom")
@@ -120,6 +122,7 @@ def test_contribute_book_rejected_when_response_has_no_edition_olid(app, db, mon
     settings_service.set_setting("openlibrary_contribution_enabled", True)
     monkeypatch.setattr(ol_service, "_login", lambda session: True)
     monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
+    monkeypatch.setattr(ol_service, "_find_matching_work", lambda session, title, author_name: None)
 
     class FakeResponse:
         url = "https://openlibrary.org/account/login"  # didn't redirect to a new edition
@@ -143,6 +146,7 @@ def test_contribute_book_reports_maybe_duplicate_when_response_stayed_on_the_add
     settings_service.set_setting("openlibrary_contribution_enabled", True)
     monkeypatch.setattr(ol_service, "_login", lambda session: True)
     monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
+    monkeypatch.setattr(ol_service, "_find_matching_work", lambda session, title, author_name: None)
 
     class FakeResponse:
         url = "https://openlibrary.org/books/add"
@@ -161,6 +165,7 @@ def test_contribute_book_finds_the_olid_in_the_response_body_when_not_in_the_url
     settings_service.set_setting("openlibrary_contribution_enabled", True)
     monkeypatch.setattr(ol_service, "_login", lambda session: True)
     monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
+    monkeypatch.setattr(ol_service, "_find_matching_work", lambda session, title, author_name: None)
 
     class FakeResponse:
         url = "https://openlibrary.org/books/add"
@@ -180,6 +185,7 @@ def test_contribute_book_uploads_the_cover_when_present(app, db, monkeypatch, tm
 
     monkeypatch.setattr(ol_service, "_login", lambda session: True)
     monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
+    monkeypatch.setattr(ol_service, "_find_matching_work", lambda session, title, author_name: None)
     monkeypatch.setattr(ol_service, "_add_cover", lambda session, olid, cover_path: True)
 
     class FakeResponse:
@@ -197,6 +203,7 @@ def test_contribute_book_reports_cover_upload_failure_without_failing_the_whole_
 
     monkeypatch.setattr(ol_service, "_login", lambda session: True)
     monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
+    monkeypatch.setattr(ol_service, "_find_matching_work", lambda session, title, author_name: None)
     monkeypatch.setattr(ol_service, "_add_cover", lambda session, olid, cover_path: False)
 
     class FakeResponse:
@@ -206,6 +213,75 @@ def test_contribute_book_reports_cover_upload_failure_without_failing_the_whole_
 
     book = _book(db, cover_image="missing-cover.jpg")
     assert ol_service.contribute_book(book) == ("ok", "OL123M", False)
+
+
+def test_contribute_book_attaches_to_a_matching_existing_work(app, db, monkeypatch):
+    """When Open Library already has a Work for this exact title/author
+    (just under a different edition/ISBN than the one being contributed),
+    the new edition must be attached to it via ?work=/works/{olid} instead
+    of leaving Open Library to guess and possibly refuse the submission."""
+    settings_service.set_setting("openlibrary_contribution_enabled", True)
+    monkeypatch.setattr(ol_service, "_login", lambda session: True)
+    monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
+    monkeypatch.setattr(ol_service, "_find_matching_work", lambda session, title, author_name: "OL999W")
+
+    captured = {}
+
+    class FakeResponse:
+        url = "https://openlibrary.org/books/OL123M/XIII"
+
+    def fake_post(self, url, **kwargs):
+        captured["url"] = url
+        return FakeResponse()
+
+    monkeypatch.setattr(requests.Session, "post", fake_post)
+
+    book = _book(db)
+    assert ol_service.contribute_book(book) == ("ok", "OL123M", None)
+    assert captured["url"] == "https://openlibrary.org/books/add?work=/works/OL999W"
+
+
+def test_find_matching_work_requires_an_exact_title_and_author_match(app, monkeypatch):
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {
+                "docs": [
+                    {"key": "/works/OL1W", "title": "A Different Book", "author_name": ["Jean Van Hamme"]},
+                    {"key": "/works/OL999W", "title": "XIII", "author_name": ["Jean Van Hamme"]},
+                ]
+            }
+
+    monkeypatch.setattr(requests.Session, "get", lambda self, *a, **k: FakeResponse())
+
+    session = requests.Session()
+    assert ol_service._find_matching_work(session, "XIII", "Jean Van Hamme") == "OL999W"
+
+
+def test_find_matching_work_returns_none_without_an_exact_match(app, monkeypatch):
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"docs": [{"key": "/works/OL1W", "title": "XIII Mystery", "author_name": ["Someone Else"]}]}
+
+    monkeypatch.setattr(requests.Session, "get", lambda self, *a, **k: FakeResponse())
+
+    session = requests.Session()
+    assert ol_service._find_matching_work(session, "XIII", "Jean Van Hamme") is None
+
+
+def test_find_matching_work_returns_none_on_network_error(app, monkeypatch):
+    def raise_error(self, *args, **kwargs):
+        raise requests.ConnectionError("boom")
+
+    monkeypatch.setattr(requests.Session, "get", raise_error)
+
+    session = requests.Session()
+    assert ol_service._find_matching_work(session, "XIII", "Jean Van Hamme") is None
 
 
 def test_login_true_when_response_ok_and_cookie_set(app, monkeypatch):
