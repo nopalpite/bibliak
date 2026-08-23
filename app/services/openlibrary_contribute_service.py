@@ -26,6 +26,17 @@ BASE_URL = "https://openlibrary.org"
 TIMEOUT = 10  # seconds — a deliberate, one-off action, not a hot path
 
 
+def _http_headers():
+    """A default `requests` User-Agent is silently rejected by some sites on
+    sensitive endpoints (login, form submissions) even though it's fine on
+    plain read APIs — mirrors isbn_service._http_headers()."""
+    contact = (current_app.config.get("CONTACT_INFO") or "").strip()
+    agent = "BIBLIAK/1.0 (application locale de gestion de collection)"
+    if contact:
+        agent += f" - {contact}"
+    return {"User-Agent": agent}
+
+
 def is_configured():
     """Whether an Open Library account is set up at all (env vars)."""
     return bool(current_app.config.get("OPENLIBRARY_ACCESS_KEY")) and bool(
@@ -48,9 +59,15 @@ def _login(session):
             "access": current_app.config.get("OPENLIBRARY_ACCESS_KEY"),
             "secret": current_app.config.get("OPENLIBRARY_SECRET_KEY"),
         },
+        headers=_http_headers(),
         timeout=TIMEOUT,
     )
-    return response.ok and bool(session.cookies)
+    if response.ok and session.cookies:
+        return True
+    current_app.logger.warning(
+        "Open Library login failed: HTTP %s, body: %.300s", response.status_code, response.text
+    )
+    return False
 
 
 def _find_author_key(session, name):
@@ -60,7 +77,10 @@ def _find_author_key(session, name):
     then created inline by the /books/add form itself)."""
     try:
         response = session.get(
-            f"{BASE_URL}/authors/_autocomplete", params={"q": name, "limit": 5}, timeout=TIMEOUT
+            f"{BASE_URL}/authors/_autocomplete",
+            params={"q": name, "limit": 5},
+            headers=_http_headers(),
+            timeout=TIMEOUT,
         )
         response.raise_for_status()
     except requests.RequestException:
@@ -93,6 +113,7 @@ def _add_cover(session, olid, cover_path):
                 "url": (None, "https://"),
                 "upload": (None, "Submit"),
             },
+            headers=_http_headers(),
             timeout=TIMEOUT,
         )
     except requests.RequestException:
@@ -167,6 +188,7 @@ def contribute_book(book):
                 "id_value": id_value,
                 "_save": "",
             },
+            headers=_http_headers(),
             timeout=TIMEOUT,
         )
     except requests.RequestException:

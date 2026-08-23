@@ -163,6 +163,44 @@ def test_contribute_book_reports_cover_upload_failure_without_failing_the_whole_
     assert ol_service.contribute_book(book) == ("ok", "OL123M", False)
 
 
+def test_login_true_when_response_ok_and_cookie_set(app, monkeypatch):
+    class FakeResponse:
+        ok = True
+        status_code = 200
+        text = ""
+
+    session = requests.Session()
+    session.cookies.set("session", "abc")
+    monkeypatch.setattr(requests.Session, "post", lambda self, *a, **k: FakeResponse())
+
+    assert ol_service._login(session) is True
+
+
+def test_login_false_when_response_not_ok(app, monkeypatch):
+    class FakeResponse:
+        ok = False
+        status_code = 403
+        text = "Forbidden"
+
+    monkeypatch.setattr(requests.Session, "post", lambda self, *a, **k: FakeResponse())
+
+    assert ol_service._login(requests.Session()) is False
+
+
+def test_login_false_when_ok_but_no_cookie_set(app, monkeypatch):
+    """A 200 response that doesn't actually authenticate (e.g. an error
+    page rendered with a 200 status) must not be mistaken for success."""
+
+    class FakeResponse:
+        ok = True
+        status_code = 200
+        text = "invalid credentials"
+
+    monkeypatch.setattr(requests.Session, "post", lambda self, *a, **k: FakeResponse())
+
+    assert ol_service._login(requests.Session()) is False
+
+
 def test_add_cover_returns_false_when_file_is_missing(app, tmp_path):
     session = requests.Session()
     assert ol_service._add_cover(session, "OL123M", tmp_path / "does-not-exist.jpg") is False
