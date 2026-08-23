@@ -62,8 +62,8 @@ def _from_open_library(isbn):
     if not data:
         return None
 
-    authors = [a.get("name") for a in data.get("authors", []) if a.get("name")]
-    publishers = [p.get("name") for p in data.get("publishers", []) if p.get("name")]
+    authors = [a.get("name") for a in (data.get("authors") or []) if a.get("name")]
+    publishers = [p.get("name") for p in (data.get("publishers") or []) if p.get("name")]
     cover = data.get("cover", {}) or {}
 
     return {

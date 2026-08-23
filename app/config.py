@@ -30,5 +30,3 @@ class Config:
     # Open Library grants a 3x more generous rate limit to identified
     # requests (see isbn_service.py).
     CONTACT_INFO = os.environ.get("CONTACT_INFO", "")
-
-    ITEMS_PER_PAGE = 60

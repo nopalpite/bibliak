@@ -6,6 +6,8 @@ the value being JSON-serialized so it can hold lists too.
 
 import json
 
+from flask import g
+
 from app.extensions import db
 from app.models import Setting
 
@@ -28,6 +30,15 @@ DUPLICATE_DETECTION_CHOICES = [
 
 
 def _ensure_default_values():
+    """Seeds any DEFAULT_VALUES key missing from the settings table.
+
+    Runs at most once per request (cached on `g`): get_setting() is called
+    several times rendering a single page, and every one of those calls used
+    to re-check all of DEFAULT_VALUES with its own SELECT, even though
+    nothing can have changed mid-request.
+    """
+    if getattr(g, "_settings_defaults_ensured", False):
+        return
     changed = False
     for key, value in DEFAULT_VALUES.items():
         if db.session.get(Setting, key) is None:
@@ -35,6 +46,7 @@ def _ensure_default_values():
             changed = True
     if changed:
         db.session.commit()
+    g._settings_defaults_ensured = True
 
 
 def get_setting(key, default=None):

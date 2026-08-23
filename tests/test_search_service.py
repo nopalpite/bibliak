@@ -16,6 +16,28 @@ def test_search_by_text_matches_title(app, db):
     assert [b.title for b in results] == ["Le Jour du Soleil Noir"]
 
 
+def test_search_by_text_does_not_treat_underscore_as_a_wildcard(app, db):
+    """Regression test: an unescaped ILIKE pattern treats "_" as "match any
+    single character", so searching for a literal underscore (a real
+    character in plenty of titles) used to match everything instead of only
+    titles that actually contain one."""
+    _book(title="Book_1")
+    _book(title="BookX1")
+
+    results = search_service.search_books(q="Book_1")
+
+    assert [b.title for b in results] == ["Book_1"]
+
+
+def test_search_by_text_does_not_treat_percent_as_a_wildcard(app, db):
+    _book(title="100% Wolf")
+    _book(title="100 Wolves")
+
+    results = search_service.search_books(q="100%")
+
+    assert [b.title for b in results] == ["100% Wolf"]
+
+
 def test_search_filters_by_item_type(app, db):
     _book(title="A", item_type="BD")
     _book(title="B", item_type="Manga")

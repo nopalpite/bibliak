@@ -80,7 +80,7 @@ def _apply_data(book, data):
     book.title = (data.get("title") or "").strip()
     book.item_type = data.get("item_type") or "Autre"
     book.isbn = (data.get("isbn") or "").strip() or None
-    book.volume = data.get("volume") or None
+    book.volume = data.get("volume")
     book.publication_date = (data.get("publication_date") or "").strip() or None
     book.summary = (data.get("summary") or "").strip() or None
     book.condition = data.get("condition") or None
@@ -156,7 +156,7 @@ def _find_duplicate_by_title_volume(title, volume, exclude_id=None):
         return None
 
     query = Book.query.filter(db.func.lower(Book.title) == title.lower())
-    if volume:
+    if volume is not None:
         query = query.filter(Book.volume == volume)
     else:
         query = query.filter(Book.volume.is_(None))

@@ -59,6 +59,20 @@ def test_update_book_never_resets_read_status_from_the_edit_form(app, db):
     assert book.title == "Nouveau titre"
 
 
+def test_create_book_keeps_volume_zero(app, db):
+    """Regression test: `data.get("volume") or None` used to silently
+    discard a legitimately entered volume 0 (e.g. a prequel/tome 0), since
+    0 is falsy in Python. The form's stepper explicitly allows 0."""
+    book = book_service.create_book(_minimal_data(volume=0))
+    assert book.volume == 0
+
+
+def test_update_book_keeps_volume_zero(app, db):
+    book = book_service.create_book(_minimal_data(volume=1))
+    book_service.update_book(book, _minimal_data(volume=0))
+    assert book.volume == 0
+
+
 def test_toggle_read(app, db):
     book = book_service.create_book(_minimal_data())
     assert book.read is False
@@ -143,6 +157,21 @@ def test_find_duplicate_respects_disabled_policy(app, db):
     )
 
     assert duplicate is None
+
+
+def test_find_duplicate_matches_volume_zero(app, db):
+    """Regression test: `if volume:` treated volume 0 the same as "no
+    volume", so it filtered by Book.volume IS NULL instead of == 0 —
+    missing a real duplicate and risking a false positive against an
+    unrelated volume-less book of the same title."""
+    book_service.create_book(_minimal_data(title="XIII", volume=0, isbn=None))
+
+    duplicate, criterion = book_service.find_duplicate(
+        {"title": "XIII", "isbn": "", "volume": 0}
+    )
+
+    assert duplicate is not None
+    assert criterion == "title"
 
 
 def test_find_duplicate_excludes_the_book_being_edited(app, db):

@@ -6,6 +6,7 @@ the basic indexes set on the models, is largely sufficient.
 """
 
 from sqlalchemy import or_
+from sqlalchemy.orm import selectinload
 
 from app.models import Author, Book, Publisher, Series, Tag
 
@@ -15,6 +16,19 @@ AVAILABLE_SORTS = {
     "date_added_asc": (Book.date_added.asc(),),
     "publication_date": (Book.publication_date.desc(),),
 }
+
+# LIKE wildcards a typed search query must not be allowed to trigger:
+# searching for a literal "_" (a real character in plenty of titles/ISBNs)
+# must not match "any single character" instead.
+_LIKE_ESCAPE = "\\"
+
+
+def _escape_like(text):
+    return (
+        text.replace(_LIKE_ESCAPE, _LIKE_ESCAPE * 2)
+        .replace("%", _LIKE_ESCAPE + "%")
+        .replace("_", _LIKE_ESCAPE + "_")
+    )
 
 
 def search_books(
@@ -28,21 +42,27 @@ def search_books(
     read_status=None,
     sort="title",
 ):
-    query = Book.query
+    query = Book.query.options(
+        selectinload(Book.authors),
+        selectinload(Book.publisher),
+        selectinload(Book.series),
+        selectinload(Book.location),
+        selectinload(Book.tags),
+    )
 
     if q:
-        pattern = f"%{q.strip()}%"
+        pattern = f"%{_escape_like(q.strip())}%"
         query = (
             query.outerjoin(Book.authors)
             .outerjoin(Book.publisher)
             .outerjoin(Book.series)
             .filter(
                 or_(
-                    Book.title.ilike(pattern),
-                    Book.isbn.ilike(pattern),
-                    Author.full_name.ilike(pattern),
-                    Publisher.name.ilike(pattern),
-                    Series.name.ilike(pattern),
+                    Book.title.ilike(pattern, escape=_LIKE_ESCAPE),
+                    Book.isbn.ilike(pattern, escape=_LIKE_ESCAPE),
+                    Author.full_name.ilike(pattern, escape=_LIKE_ESCAPE),
+                    Publisher.name.ilike(pattern, escape=_LIKE_ESCAPE),
+                    Series.name.ilike(pattern, escape=_LIKE_ESCAPE),
                 )
             )
             .distinct()

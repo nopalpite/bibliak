@@ -48,6 +48,30 @@ def test_edit_book(client, db):
     assert "Titre modifié".encode() in detail.data
 
 
+def test_editing_a_book_preserves_an_item_type_removed_from_admin(client, db):
+    """Regression test: the item_type <select> only marks an <option>
+    selected if the book's stored value is still in the configurable list.
+    If it was removed from Administration > References since, none of the
+    options matched, so the browser silently defaulted to the first option
+    — saving the form for *any* unrelated reason silently rewrote the
+    book's type to something else entirely, with no warning."""
+    create = client.post("/books/new", data={"title": "Vieux type", "item_type": "Fanzine"})
+    book_id = create.location.rstrip("/").rsplit("/", 1)[-1]
+
+    edit_page = client.get(f"/books/{book_id}/edit")
+    html = edit_page.get_data(as_text=True)
+    assert '<option value="Fanzine" selected>Fanzine</option>' in html
+
+    response = client.post(
+        f"/books/{book_id}/edit",
+        data={"title": "Vieux type", "item_type": "Fanzine", "condition": "Bon état"},
+    )
+    assert response.status_code == 302
+
+    book = db.session.get(Book, int(book_id))
+    assert book.item_type == "Fanzine"
+
+
 def test_toggle_read_route(client, db):
     create = client.post("/books/new", data={"title": "Un livre", "item_type": "BD"})
     book_id = int(create.location.rstrip("/").rsplit("/", 1)[-1])

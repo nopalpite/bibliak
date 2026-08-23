@@ -324,7 +324,7 @@ def _values_from_book(book):
         "item_type": book.item_type or "",
         "isbn": book.isbn or "",
         "series_id": book.series_id,
-        "volume": book.volume or "",
+        "volume": book.volume if book.volume is not None else "",
         "authors": book.author_list,
         "publisher_id": book.publisher_id,
         "publication_date": book.publication_date or "",

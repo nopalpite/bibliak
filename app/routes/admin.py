@@ -2,6 +2,7 @@ import json
 from io import BytesIO
 
 from flask import Blueprint, render_template, request, send_file
+from sqlalchemy.orm import selectinload
 
 from app.extensions import db
 from app.models import Book, Location, Publisher, Series, Tag
@@ -26,7 +27,7 @@ def _settings_context():
         "default_view": settings_service.get_setting("default_view"),
         "duplicate_detection": settings_service.get_setting("duplicate_detection"),
         "duplicate_detection_choices": settings_service.DUPLICATE_DETECTION_CHOICES,
-        "language": settings_service.get_setting("language", "fr"),
+        "language": settings_service.get_setting("language"),
         "available_languages": i18n_service.available_languages(),
     }
 
@@ -172,7 +173,13 @@ def merge_reference(model_name):
 
 @admin_bp.route("/export.json")
 def export_json():
-    books = Book.query.all()
+    books = Book.query.options(
+        selectinload(Book.authors),
+        selectinload(Book.publisher),
+        selectinload(Book.series),
+        selectinload(Book.location),
+        selectinload(Book.tags),
+    ).all()
     data = [
         {
             "title": b.title,

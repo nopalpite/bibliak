@@ -9,6 +9,31 @@ def test_attempt_search_ok(monkeypatch):
     assert result["isbn"] == "9782505004900"  # dashes stripped
 
 
+def test_from_open_library_handles_explicit_null_authors_and_publishers(app, monkeypatch):
+    """Regression test: Open Library can return "authors": null / "publishers":
+    null instead of omitting the key (common for sparsely-catalogued
+    comics/manga editions). dict.get(key, []) only falls back to [] when the
+    key is *absent*, not when it's explicitly null, so `for a in data.get(
+    "authors", [])` used to raise TypeError: 'NoneType' object is not
+    iterable — an unhandled crash instead of a normal "ok" result."""
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"ISBN:9782505004900": {"title": "XIII", "authors": None, "publishers": None}}
+
+    monkeypatch.setattr(isbn_service.requests, "get", lambda *a, **k: FakeResponse())
+
+    status, result = isbn_service.attempt_search("9782505004900")
+
+    assert status == "ok"
+    assert result["title"] == "XIII"
+    assert result["authors"] == []
+    assert result["publisher"] is None
+
+
 def test_attempt_search_not_found(monkeypatch):
     monkeypatch.setattr(isbn_service, "_from_open_library", lambda isbn: None)
     status, result = isbn_service.attempt_search("9782505004900")

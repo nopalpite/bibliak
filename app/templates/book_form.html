@@ -75,6 +75,9 @@
             {% for type_ in item_types %}
             <option value="{{ type_ }}" {{ 'selected' if values.item_type == type_ }}>{{ type_ }}</option>
             {% endfor %}
+            {% if values.item_type and values.item_type not in item_types %}
+            <option value="{{ values.item_type }}" selected>{{ values.item_type }}</option>
+            {% endif %}
           </select>
         </div>
         <div>
@@ -158,6 +161,9 @@
             {% for c in conditions %}
             <option value="{{ c }}" {{ 'selected' if values.condition == c }}>{{ c }}</option>
             {% endfor %}
+            {% if values.condition and values.condition not in conditions %}
+            <option value="{{ values.condition }}" selected>{{ values.condition }}</option>
+            {% endif %}
           </select>
         </div>
         <div>
