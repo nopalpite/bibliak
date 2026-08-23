@@ -121,8 +121,23 @@ def _add_cover(session, olid, cover_path):
     return response.ok
 
 
-def _extract_olid(url):
-    match = re.search(r"/books/([0-9a-zA-Z]+)", url)
+# Open Library edition IDs always look like "OL" + digits + "M" (works are
+# "...W", authors "...A"). Matching this precisely — instead of any
+# alphanumeric path segment — matters: /books/add itself matches a loose
+# "/books/(\w+)" pattern (the literal word "add"), so a response that didn't
+# actually redirect to a new edition was being reported as a success with
+# a bogus "olid" of "add", silently breaking both the "View" link and the
+# cover upload (posted to the nonsensical /books/add/-/add-cover).
+_OLID_PATTERN = re.compile(r"(OL\d+M)")
+
+
+def _extract_olid(response):
+    match = _OLID_PATTERN.search(response.url)
+    if match:
+        return match.group(1)
+    # Some outcomes (e.g. a first-time-contributor interstitial) don't
+    # redirect to the new edition at all, but still mention it in the page.
+    match = _OLID_PATTERN.search(response.text)
     return match.group(1) if match else None
 
 
@@ -194,8 +209,12 @@ def contribute_book(book):
     except requests.RequestException:
         return "network_error", None, None
 
-    olid = _extract_olid(response.url)
+    olid = _extract_olid(response)
     if not olid:
+        current_app.logger.warning(
+            "Open Library did not return an edition ID: final URL %s, HTTP %s, body: %.300s",
+            response.url, response.status_code, response.text,
+        )
         return "rejected", None, None
 
     cover_uploaded = None

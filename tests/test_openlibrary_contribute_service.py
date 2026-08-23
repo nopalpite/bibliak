@@ -30,6 +30,8 @@ def _make_ok(monkeypatch):
     class FakeResponse:
         url = "https://openlibrary.org/books/OL123M/XIII"
         ok = True
+        status_code = 200
+        text = ""
 
     monkeypatch.setattr(requests.Session, "post", lambda self, *a, **k: FakeResponse())
 
@@ -121,11 +123,51 @@ def test_contribute_book_rejected_when_response_has_no_edition_olid(app, db, mon
 
     class FakeResponse:
         url = "https://openlibrary.org/account/login"  # didn't redirect to a new edition
+        status_code = 200
+        text = "some unrelated page content"
 
     monkeypatch.setattr(requests.Session, "post", lambda self, *a, **k: FakeResponse())
 
     book = _book(db)
     assert ol_service.contribute_book(book) == ("rejected", None, None)
+
+
+def test_contribute_book_rejected_when_response_stayed_on_the_add_form(app, db, monkeypatch):
+    """Regression test: a response that never redirected past /books/add
+    must not be mistaken for success just because "add" happens to match a
+    loose "any word after /books/" pattern — this used to silently report
+    ("ok", "add", ...), breaking both the "View" link and the cover upload."""
+    settings_service.set_setting("openlibrary_contribution_enabled", True)
+    monkeypatch.setattr(ol_service, "_login", lambda session: True)
+    monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
+
+    class FakeResponse:
+        url = "https://openlibrary.org/books/add"
+        status_code = 200
+        text = "<html>please sign in to add a book</html>"
+
+    monkeypatch.setattr(requests.Session, "post", lambda self, *a, **k: FakeResponse())
+
+    book = _book(db)
+    assert ol_service.contribute_book(book) == ("rejected", None, None)
+
+
+def test_contribute_book_finds_the_olid_in_the_response_body_when_not_in_the_url(app, db, monkeypatch):
+    """Some outcomes (e.g. a first-time-contributor interstitial) don't
+    redirect to the new edition, but the page still references it."""
+    settings_service.set_setting("openlibrary_contribution_enabled", True)
+    monkeypatch.setattr(ol_service, "_login", lambda session: True)
+    monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
+
+    class FakeResponse:
+        url = "https://openlibrary.org/books/add"
+        status_code = 200
+        text = '<html>Thanks! View your new book: <a href="/books/OL456M">here</a></html>'
+
+    monkeypatch.setattr(requests.Session, "post", lambda self, *a, **k: FakeResponse())
+
+    book = _book(db)
+    assert ol_service.contribute_book(book) == ("ok", "OL456M", None)
 
 
 def test_contribute_book_uploads_the_cover_when_present(app, db, monkeypatch, tmp_path):
