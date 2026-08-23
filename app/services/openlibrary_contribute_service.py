@@ -25,16 +25,26 @@ from app.services.settings_service import get_setting
 BASE_URL = "https://openlibrary.org"
 TIMEOUT = 10  # seconds — a deliberate, one-off action, not a hot path
 
+_SCRIPT_STYLE_RE = re.compile(r"<(script|style)\b[^>]*>.*?</\1>", re.IGNORECASE | re.DOTALL)
 _TAG_RE = re.compile(r"<[^>]+>")
+_TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 
 
 def _readable_error_snippet(html, limit=1500):
     """Strips HTML tags so a logged error page is actually readable instead
-    of a wall of markup with the useful bit (title, error message) buried
-    past the first few hundred characters of boilerplate <head>."""
-    text = _TAG_RE.sub(" ", html or "")
-    text = re.sub(r"\s+", " ", text).strip()
-    return text[:limit]
+    of a wall of markup — critically, this also drops <script>/<style>
+    *contents* (not just the tags), which a plain tag-strip leaves behind
+    as a wall of CSS/JS that buries the actual error message."""
+    html = html or ""
+    title_match = _TITLE_RE.search(html)
+    title = re.sub(r"\s+", " ", title_match.group(1)).strip() if title_match else ""
+
+    body = _SCRIPT_STYLE_RE.sub(" ", html)
+    body = _TAG_RE.sub(" ", body)
+    body = re.sub(r"\s+", " ", body).strip()
+
+    snippet = f"[title: {title}] {body}" if title else body
+    return snippet[:limit]
 
 
 def _http_headers():

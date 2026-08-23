@@ -161,10 +161,14 @@ def test_search_title_route_renders_results(client, db, monkeypatch):
         lambda title: [{"title": "XIII", "authors": ["Jean Van Hamme"], "publisher": "Dargaud",
                          "publication_date": "1984", "image_url": None, "source": "Open Library"}],
     )
-    response = client.post("/scan/search-title", data={"title": "XIII"})
+    response = client.post("/scan/search-title", data={"title": "XIII", "isbn": "9782505004900"})
     assert response.status_code == 200
     assert b"XIII" in response.data
     assert b"Dargaud" in response.data
+    # the originally scanned ISBN (this edition's own) must be carried
+    # through to the "use this" form, not lost in favor of the matched
+    # result's own (different) edition
+    assert b'name="isbn" value="9782505004900"' in response.data
 
 
 def test_search_title_route_with_blank_title_returns_no_results(client, db):
@@ -177,6 +181,7 @@ def test_select_title_result_prefills_the_new_book_form(client, db):
     response = client.post(
         "/scan/select-title-result",
         data={
+            "isbn": "9782505004900",
             "title": "XIII",
             "authors": "Jean Van Hamme, William Vance",
             "publisher": "Dargaud",
@@ -191,3 +196,5 @@ def test_select_title_result_prefills_the_new_book_form(client, db):
     html = form.get_data(as_text=True)
     assert "XIII" in html
     assert "Jean Van Hamme, William Vance" in html
+    # the scanned ISBN (this specific copy's own) must survive the round trip
+    assert "9782505004900" in html

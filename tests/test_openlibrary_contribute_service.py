@@ -284,6 +284,28 @@ def test_find_matching_work_returns_none_on_network_error(app, monkeypatch):
     assert ol_service._find_matching_work(session, "XIII", "Jean Van Hamme") is None
 
 
+def test_readable_error_snippet_strips_script_and_style_contents():
+    """Regression test: a plain tag-strip leaves <script>/<style> *contents*
+    behind as a wall of CSS/JS, burying the actual error text — this used
+    to be exactly what showed up in the logs instead of anything useful."""
+    html = (
+        "<html><head><title>Internal Server Error</title>"
+        "<style>.clamp { -webkit-line-clamp: unset; }</style>"
+        "<script>window.OL_EXPERIMENTS = {}; var x = 1;</script>"
+        "</head><body><h1>Something went wrong</h1></body></html>"
+    )
+    snippet = ol_service._readable_error_snippet(html)
+    assert "clamp" not in snippet
+    assert "OL_EXPERIMENTS" not in snippet
+    assert "Internal Server Error" in snippet
+    assert "Something went wrong" in snippet
+
+
+def test_readable_error_snippet_handles_missing_title():
+    snippet = ol_service._readable_error_snippet("<html><body>plain error</body></html>")
+    assert snippet == "plain error"
+
+
 def test_login_true_when_response_ok_and_cookie_set(app, monkeypatch):
     class FakeResponse:
         ok = True

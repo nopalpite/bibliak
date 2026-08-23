@@ -3,6 +3,7 @@
   <div class="space-y-2 mt-3">
     {% for r in results %}
     <form method="post" action="{{ url_for('scan.select_title_result') }}" class="card p-3 flex items-center gap-3">
+      <input type="hidden" name="isbn" value="{{ isbn }}">
       <input type="hidden" name="title" value="{{ r.title }}">
       <input type="hidden" name="authors" value="{{ r.authors|join(', ') }}">
       <input type="hidden" name="publisher" value="{{ r.publisher or '' }}">

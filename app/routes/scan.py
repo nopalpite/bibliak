@@ -83,19 +83,26 @@ def _search_step(state):
 def search_title():
     """Fallback search when the ISBN scan found nothing: Open Library may
     still have the book under a different edition, findable by title."""
+    isbn = request.form.get("isbn", "").strip()
     title = request.form.get("title", "").strip()
     if not title:
-        return render_template("partials/title_search_results.html", results=[], searched=False)
+        return render_template(
+            "partials/title_search_results.html", results=[], searched=False, isbn=isbn
+        )
     return render_template(
-        "partials/title_search_results.html", results=search_by_title(title), searched=True
+        "partials/title_search_results.html", results=search_by_title(title), searched=True, isbn=isbn
     )
 
 
 @scan_bp.route("/select-title-result", methods=["POST"])
 def select_title_result():
     """Prefills the add-book form from a title search result the user
-    picked, the same way a successful ISBN scan does."""
+    picked, the same way a successful ISBN scan does. Carries over the
+    originally scanned ISBN (this specific edition's own identifier, not
+    part of the matched title-search result — that one belongs to a
+    *different* edition) so it isn't lost."""
     session["prefill_scan"] = {
+        "isbn": request.form.get("isbn", "").strip() or None,
         "title": request.form.get("title", ""),
         "authors": [a.strip() for a in request.form.get("authors", "").split(",") if a.strip()],
         "publisher": request.form.get("publisher") or None,
