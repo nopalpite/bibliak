@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, send_file
 
 from app.extensions import db
 from app.models import Book, Location, Publisher, Series, Tag
-from app.services import book_service, i18n_service, openlibrary_contribute_service, settings_service
+from app.services import book_service, i18n_service, settings_service
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -28,8 +28,6 @@ def _settings_context():
         "duplicate_detection_choices": settings_service.DUPLICATE_DETECTION_CHOICES,
         "language": settings_service.get_setting("language", "fr"),
         "available_languages": i18n_service.available_languages(),
-        "openlibrary_contribution_enabled": settings_service.get_setting("openlibrary_contribution_enabled", False),
-        "openlibrary_keys_configured": openlibrary_contribute_service.is_configured(),
     }
 
 
@@ -77,9 +75,6 @@ def save_settings():
     settings_service.set_setting("default_view", request.form.get("default_view"))
     settings_service.set_setting("duplicate_detection", request.form.get("duplicate_detection"))
     settings_service.set_setting("language", request.form.get("language"))
-    settings_service.set_setting(
-        "openlibrary_contribution_enabled", request.form.get("openlibrary_contribution_enabled") == "on"
-    )
     return render_template("admin/settings.html", **_settings_context())
 
 

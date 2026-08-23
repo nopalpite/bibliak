@@ -123,45 +123,6 @@ def test_quick_create_series_route(client, db):
     assert "Blacksad".encode() in response.data
 
 
-def test_book_detail_hides_openlibrary_contribution_when_not_enabled(client, db):
-    create = client.post("/books/new", data={"title": "XIII", "item_type": "BD"})
-    book_id = int(create.location.rstrip("/").rsplit("/", 1)[-1])
-
-    detail = client.get(f"/books/{book_id}")
-    assert "Contribute this book to Open Library".encode() not in detail.data
-
-
-def test_contribute_to_openlibrary_route_persists_the_returned_olid(client, db, monkeypatch):
-    create = client.post("/books/new", data={"title": "XIII", "item_type": "BD"})
-    book_id = int(create.location.rstrip("/").rsplit("/", 1)[-1])
-
-    monkeypatch.setattr(
-        "app.routes.books.openlibrary_contribute_service.contribute_book",
-        lambda book: ("ok", "OL123M", None),
-    )
-    response = client.post(f"/books/{book_id}/contribute-to-openlibrary")
-    assert response.status_code == 200
-    assert b"OL123M" in response.data
-
-    book = db.session.get(Book, book_id)
-    assert book.openlibrary_edition_id == "OL123M"
-
-
-def test_contribute_to_openlibrary_route_does_not_persist_on_failure(client, db, monkeypatch):
-    create = client.post("/books/new", data={"title": "XIII", "item_type": "BD"})
-    book_id = int(create.location.rstrip("/").rsplit("/", 1)[-1])
-
-    monkeypatch.setattr(
-        "app.routes.books.openlibrary_contribute_service.contribute_book",
-        lambda book: ("missing_author", None, None),
-    )
-    response = client.post(f"/books/{book_id}/contribute-to-openlibrary")
-    assert response.status_code == 200
-
-    book = db.session.get(Book, book_id)
-    assert book.openlibrary_edition_id is None
-
-
 def test_scan_page_loads(client):
     response = client.get("/scan/")
     assert response.status_code == 200

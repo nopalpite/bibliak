@@ -26,13 +26,6 @@ class Config:
     # unlock camera access in Safari).
     CERT_DIR = BASE_DIR / "certs"
 
-    # Contributing missing books back to Open Library (see
-    # openlibrary_contribute_service.py). These are the S3-style access/secret
-    # keys found in the user's Open Library account settings — not their
-    # account password.
-    OPENLIBRARY_ACCESS_KEY = os.environ.get("OPENLIBRARY_ACCESS_KEY", "")
-    OPENLIBRARY_SECRET_KEY = os.environ.get("OPENLIBRARY_SECRET_KEY", "")
-
     # Contact info sent in the User-Agent header of calls to Open Library:
     # Open Library grants a 3x more generous rate limit to identified
     # requests (see isbn_service.py).

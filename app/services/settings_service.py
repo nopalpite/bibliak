@@ -17,9 +17,6 @@ DEFAULT_VALUES = {
     # Duplicate detection policy, applied uniformly wherever a book is
     # created (manual add, scan, import) — see book_service.find_duplicate
     "duplicate_detection": "isbn_and_title",
-    # Off by default even when OPENLIBRARY_ACCESS_KEY/SECRET_KEY are set —
-    # see openlibrary_contribute_service.is_enabled().
-    "openlibrary_contribution_enabled": False,
 }
 
 # Possible choices for "duplicate_detection", used by the administration page
