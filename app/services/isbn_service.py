@@ -1,11 +1,18 @@
-"""Retrieval of a book's metadata from its ISBN/EAN, via Open Library.
+"""Retrieval of a book's metadata from Open Library, by ISBN/EAN or by title.
 
-A network failure (timeout, connection refused...) is retried a few times
-before giving up: scanning happens over flaky mobile connections, where a
-failed attempt often just means "try again in a second". Each attempt is a
-separate HTTP request (driven by the client via app/routes/scan.py), so the
-user sees live feedback between attempts instead of the page hanging for
-tens of seconds.
+A network failure on an ISBN search (timeout, connection refused...) is
+retried a few times before giving up: scanning happens over flaky mobile
+connections, where a failed attempt often just means "try again in a
+second". Each attempt is a separate HTTP request (driven by the client via
+app/routes/scan.py), so the user sees live feedback between attempts
+instead of the page hanging for tens of seconds.
+
+Open Library only knows a book once someone has entered at least one of its
+editions: an ISBN it has never seen returns nothing no matter how the
+lookup is done — there's no data to retrieve for it. If the book exists
+under a *different* edition/ISBN though, it's still findable by title, which
+is what search_by_title() is for (offered as a fallback when the ISBN
+search comes up empty).
 
 Comics and manga are often poorly referenced there: the result must
 therefore always be treated as a pre-fill, never as an absolute truth.
@@ -89,3 +96,51 @@ def attempt_search(isbn):
         result["isbn"] = normalized_isbn
         return "ok", result
     return "not_found", None
+
+
+TITLE_SEARCH_MAX_RESULTS = 5
+
+
+def search_by_title(title):
+    """Searches Open Library by title, for when an ISBN scan found nothing.
+
+    Returns a list of up to TITLE_SEARCH_MAX_RESULTS candidates (most
+    relevant first), each shaped like an ISBN search result but without an
+    "isbn" key (the whole point is that we don't have one for this
+    edition). Returns an empty list on no match or on any network error —
+    this is a supplementary, best-effort search, not worth retrying
+    automatically like the ISBN one.
+    """
+    title = (title or "").strip()
+    if not title:
+        return []
+
+    try:
+        response = requests.get(
+            "https://openlibrary.org/search.json",
+            params={
+                "title": title,
+                "limit": TITLE_SEARCH_MAX_RESULTS,
+                "fields": "key,title,author_name,first_publish_year,publisher,cover_i",
+            },
+            headers=_http_headers(),
+            timeout=TIMEOUT,
+        )
+        response.raise_for_status()
+        docs = response.json().get("docs", [])
+    except requests.RequestException:
+        return []
+
+    results = []
+    for doc in docs:
+        cover_id = doc.get("cover_i")
+        publishers = doc.get("publisher") or []
+        results.append({
+            "title": doc.get("title"),
+            "authors": doc.get("author_name") or [],
+            "publisher": publishers[0] if publishers else None,
+            "publication_date": str(doc["first_publish_year"]) if doc.get("first_publish_year") else None,
+            "image_url": f"https://covers.openlibrary.org/b/id/{cover_id}-M.jpg" if cover_id else None,
+            "source": "Open Library",
+        })
+    return results

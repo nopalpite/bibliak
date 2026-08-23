@@ -1,0 +1,29 @@
+{% if searched %}
+  {% if results %}
+  <div class="space-y-2 mt-3">
+    {% for r in results %}
+    <form method="post" action="{{ url_for('scan.select_title_result') }}" class="card p-3 flex items-center gap-3">
+      <input type="hidden" name="title" value="{{ r.title }}">
+      <input type="hidden" name="authors" value="{{ r.authors|join(', ') }}">
+      <input type="hidden" name="publisher" value="{{ r.publisher or '' }}">
+      <input type="hidden" name="publication_date" value="{{ r.publication_date or '' }}">
+      <input type="hidden" name="image_url" value="{{ r.image_url or '' }}">
+      <div class="w-10 aspect-[2/3] rounded overflow-hidden flex-shrink-0" style="background: var(--surface-muted);">
+        {% if r.image_url %}<img src="{{ r.image_url }}" alt="" class="w-full h-full object-cover">{% endif %}
+      </div>
+      <div class="flex-1 min-w-0 text-sm">
+        <p class="font-medium truncate">{{ r.title }}</p>
+        <p class="text-xs truncate" style="color: var(--ink-muted);">
+          {{ r.authors|join(', ') }}{% if r.publisher %} — {{ r.publisher }}{% endif %}{% if r.publication_date %} ({{ r.publication_date }}){% endif %}
+        </p>
+      </div>
+      <button type="submit" class="text-xs px-2.5 py-1.5 rounded-md border flex-shrink-0" style="border-color: var(--border);">
+        {{ t('Use this') }}
+      </button>
+    </form>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-xs mt-2" style="color: var(--ink-muted);">{{ t('No match found on Open Library.') }}</p>
+  {% endif %}
+{% endif %}

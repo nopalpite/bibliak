@@ -1,7 +1,12 @@
-from flask import Blueprint, render_template, request, session
+from flask import Blueprint, redirect, render_template, request, session, url_for
 
 from app.services.i18n_service import t
-from app.services.isbn_service import ISBN_SEARCH_MAX_ATTEMPTS, ISBN_SEARCH_RETRY_DELAY_MS, attempt_search
+from app.services.isbn_service import (
+    ISBN_SEARCH_MAX_ATTEMPTS,
+    ISBN_SEARCH_RETRY_DELAY_MS,
+    attempt_search,
+    search_by_title,
+)
 
 scan_bp = Blueprint("scan", __name__)
 
@@ -72,3 +77,30 @@ def _search_step(state):
     return render_template(
         "partials/scan_result.html", error=error, isbn=state["isbn"], error_type=error_type
     )
+
+
+@scan_bp.route("/search-title", methods=["POST"])
+def search_title():
+    """Fallback search when the ISBN scan found nothing: Open Library may
+    still have the book under a different edition, findable by title."""
+    title = request.form.get("title", "").strip()
+    if not title:
+        return render_template("partials/title_search_results.html", results=[], searched=False)
+    return render_template(
+        "partials/title_search_results.html", results=search_by_title(title), searched=True
+    )
+
+
+@scan_bp.route("/select-title-result", methods=["POST"])
+def select_title_result():
+    """Prefills the add-book form from a title search result the user
+    picked, the same way a successful ISBN scan does."""
+    session["prefill_scan"] = {
+        "title": request.form.get("title", ""),
+        "authors": [a.strip() for a in request.form.get("authors", "").split(",") if a.strip()],
+        "publisher": request.form.get("publisher") or None,
+        "publication_date": request.form.get("publication_date", ""),
+        "image_url": request.form.get("image_url") or None,
+        "source": "Open Library",
+    }
+    return redirect(url_for("books.new"))
