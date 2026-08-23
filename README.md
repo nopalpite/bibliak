@@ -1,8 +1,6 @@
 # BIBLIAK
 
-Local app for managing a comic book and book collection — no account, no authentication, built for personal single-user use.
-
-Built to the agreed spec: Flask + SQLite, HTMX + Alpine.js for dynamic interactions, TailwindCSS for styling, all packaged with Docker.
+Self-hosted app for managing a comic book and book collection — no account, no authentication, single-user. Flask + SQLite, HTMX + Alpine.js, TailwindCSS, packaged with Docker.
 
 ## Features
 
@@ -103,7 +101,7 @@ services:
 
 See [Environment variables](#environment-variables) below for what each one does, and [Enabling camera scanning from a smartphone](#enabling-camera-scanning-from-a-smartphone) for `HOST_IP`.
 
-> **Note**: the `bibliak` package on GHCR is currently **private**. To pull it you'll need either to make the package public (repo → Packages → `bibliak` → Package settings → Change visibility), or to authenticate your Docker host / Portainer / Dockge with a [GitHub personal access token](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry) that has `read:packages` scope. If neither works for you, use the "build from source" method in [Quick start (Docker)](#quick-start-docker) instead — it doesn't touch the registry at all.
+> **Note**: the `bibliak` package on GHCR is currently **private**. Either make it public (repo → Packages → `bibliak` → Package settings), or authenticate your Docker host with a [GitHub personal access token](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry) (`read:packages` scope). Otherwise, use the "build from source" method above instead.
 
 ## Environment variables
 
@@ -132,21 +130,21 @@ flask run --debug --port 8000
 
 ```
 biblio-app/
-├── .github/workflows/    # CI (lint + tests) and Docker image publish
+├── .github/workflows/   # CI (lint + tests) and Docker image publish
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
-├── requirements-dev.txt  # + pytest, ruff
+├── requirements-dev.txt # + pytest, ruff
 ├── run.py
 ├── app/
-│   ├── config.py            # configuration (paths, API keys...)
-│   ├── extensions.py         # SQLAlchemy, Migrate
-│   ├── translations/          # UI strings, one flat JSON file per language
-│   ├── models/                  # Book, Author, Publisher, Series, Tag, Location, Setting
-│   ├── services/                  # business logic (search, isbn, image, book, series, settings, i18n)
-│   ├── routes/                      # Flask blueprints (main, books, scan, admin)
-│   ├── templates/                     # Jinja2 (layout, pages, HTMX fragments, admin)
-│   └── static/                          # JS (htmx/alpine/scanner) and stored covers
+│   ├── config.py        # configuration (paths, CONTACT_INFO...)
+│   ├── extensions.py    # SQLAlchemy, Migrate
+│   ├── translations/    # UI strings, one flat JSON file per language
+│   ├── models/          # Book, Author, Publisher, Series, Tag, Location, Setting
+│   ├── services/        # business logic (search, isbn, image, book, settings, i18n)
+│   ├── routes/          # Flask blueprints (main, books, scan, admin)
+│   ├── templates/       # Jinja2 (layout, pages, HTMX fragments, admin)
+│   └── static/          # JS (htmx/alpine/scanner) and stored covers
 ├── tests/                # pytest suite (services + routes)
 └── data/                 # created on first Docker launch (database + covers), not versioned
 ```
@@ -172,6 +170,4 @@ docker compose exec biblio-app flask db upgrade
 
 ## ISBN metadata source
 
-Metadata (title, authors, publisher, cover...) is retrieved from the [Open Library Books API](https://openlibrary.org/dev/docs/api/books) — free, no key required.
-
-Each call sends a `User-Agent` header identifying the app. Open Library recommends including a contact (email or phone) in it: in exchange, the rate limit goes from 1 to 3 requests per second, and they can warn you in case of abnormal volume instead of silently blocking you. Set `CONTACT_INFO` in `.env` to benefit from this (optional, but recommended if you scan a lot of books in a row).
+Metadata (title, authors, publisher, cover...) is retrieved from the [Open Library Books API](https://openlibrary.org/dev/docs/api/books) — free, no key required. See `CONTACT_INFO` above for a higher rate limit.
