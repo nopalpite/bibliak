@@ -13,7 +13,9 @@ current GitHub source pulls in the much heavier `internetarchive` SDK for
 what amounts to two POST requests and one lookup.
 """
 
+import mimetypes
 import re
+from pathlib import Path
 
 import requests
 from flask import current_app
@@ -71,6 +73,33 @@ def _find_author_key(session, name):
     return None
 
 
+def _add_cover(session, olid, cover_path):
+    """Uploads a locally-stored cover image to the given edition, by
+    sending its bytes directly rather than a URL — the app usually isn't
+    publicly reachable (self-signed HTTPS, local network), so Open Library
+    could not fetch a cover from it even if we gave it one. Best-effort:
+    the edition itself is already created either way."""
+    try:
+        cover_bytes = cover_path.read_bytes()
+    except OSError:
+        return False
+
+    mime_type = mimetypes.guess_type(cover_path.name)[0] or "image/jpeg"
+    try:
+        response = session.post(
+            f"{BASE_URL}/books/{olid}/-/add-cover",
+            files={
+                "file": (cover_path.name, cover_bytes, mime_type),
+                "url": (None, "https://"),
+                "upload": (None, "Submit"),
+            },
+            timeout=TIMEOUT,
+        )
+    except requests.RequestException:
+        return False
+    return response.ok
+
+
 def _extract_olid(url):
     match = re.search(r"/books/([0-9a-zA-Z]+)", url)
     return match.group(1) if match else None
@@ -88,35 +117,40 @@ def _primary_identifier(isbn):
 def contribute_book(book):
     """Submits `book` (an app.models.Book) to Open Library as a new edition.
 
-    Returns a (status, value) tuple:
-    - ("ok", olid): created successfully, olid is the new edition's ID
-    - ("not_configured", None): no Open Library account keys are set
-    - ("disabled", None): keys are set but the admin toggle is off
-    - ("missing_author", None): Open Library requires a full name (first
-      and last) for at least one author, and the book has none usable
-    - ("missing_isbn", None): Open Library requires an ISBN-10/13
-    - ("auth_failed", None): the configured account credentials were rejected
-    - ("network_error", None): could not reach Open Library
-    - ("rejected", None): Open Library responded but didn't redirect to a
-      newly created edition (unexpected server-side outcome)
+    Returns a (status, olid, cover_uploaded) tuple. cover_uploaded is only
+    meaningful when status is "ok": True if a cover was uploaded, False if
+    the book has one but the upload failed (the edition is still created
+    either way), None if the book has no cover to upload.
+
+    status values:
+    - "ok": created successfully, olid is the new edition's ID
+    - "not_configured": no Open Library account keys are set
+    - "disabled": keys are set but the admin toggle is off
+    - "missing_author": Open Library requires a full name (first and last)
+      for at least one author, and the book has none usable
+    - "missing_isbn": Open Library requires an ISBN-10/13
+    - "auth_failed": the configured account credentials were rejected
+    - "network_error": could not reach Open Library
+    - "rejected": Open Library responded but didn't redirect to a newly
+      created edition (unexpected server-side outcome)
     """
     if not is_configured():
-        return "not_configured", None
+        return "not_configured", None, None
     if not is_enabled():
-        return "disabled", None
+        return "disabled", None, None
 
     author_name = next((a.full_name for a in book.authors if len(a.full_name.split()) > 1), None)
     if not author_name:
-        return "missing_author", None
+        return "missing_author", None, None
 
     id_name, id_value = _primary_identifier(book.isbn)
     if not id_name:
-        return "missing_isbn", None
+        return "missing_isbn", None, None
 
     session = requests.Session()
     try:
         if not _login(session):
-            return "auth_failed", None
+            return "auth_failed", None, None
 
         author_olid = _find_author_key(session, author_name)
         author_key = f"/authors/{author_olid}" if author_olid else "__new__"
@@ -136,9 +170,15 @@ def contribute_book(book):
             timeout=TIMEOUT,
         )
     except requests.RequestException:
-        return "network_error", None
+        return "network_error", None, None
 
     olid = _extract_olid(response.url)
     if not olid:
-        return "rejected", None
-    return "ok", olid
+        return "rejected", None, None
+
+    cover_uploaded = None
+    if book.cover_image:
+        cover_path = Path(current_app.config["COVERS_DIR"]) / book.cover_image
+        cover_uploaded = _add_cover(session, olid, cover_path)
+
+    return "ok", olid, cover_uploaded

@@ -12,10 +12,8 @@ def _configured_and_enabled(app):
     app.config["OPENLIBRARY_SECRET_KEY"] = "test-secret"
 
 
-def _book(db, title="XIII", isbn="9782505004900", author_name="Jean Van Hamme", publisher=None):
-    book = Book(title=title, item_type="BD", isbn=isbn)
-    if publisher:
-        book.publisher = publisher
+def _book(db, title="XIII", isbn="9782505004900", author_name="Jean Van Hamme", cover_image=None):
+    book = Book(title=title, item_type="BD", isbn=isbn, cover_image=cover_image)
     if author_name:
         author = Author(full_name=author_name)
         db.session.add(author)
@@ -23,6 +21,17 @@ def _book(db, title="XIII", isbn="9782505004900", author_name="Jean Van Hamme", 
     db.session.add(book)
     db.session.commit()
     return book
+
+
+def _make_ok(monkeypatch):
+    monkeypatch.setattr(ol_service, "_login", lambda session: True)
+    monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
+
+    class FakeResponse:
+        url = "https://openlibrary.org/books/OL123M/XIII"
+        ok = True
+
+    monkeypatch.setattr(requests.Session, "post", lambda self, *a, **k: FakeResponse())
 
 
 def test_is_configured_true_with_both_keys(app):
@@ -48,45 +57,39 @@ def test_contribute_book_not_configured(app, db):
     app.config["OPENLIBRARY_ACCESS_KEY"] = ""
     settings_service.set_setting("openlibrary_contribution_enabled", True)
     book = _book(db)
-    status, value = ol_service.contribute_book(book)
-    assert (status, value) == ("not_configured", None)
+    assert ol_service.contribute_book(book) == ("not_configured", None, None)
 
 
 def test_contribute_book_disabled_by_setting(app, db):
     settings_service.set_setting("openlibrary_contribution_enabled", False)
     book = _book(db)
-    status, value = ol_service.contribute_book(book)
-    assert (status, value) == ("disabled", None)
+    assert ol_service.contribute_book(book) == ("disabled", None, None)
 
 
 def test_contribute_book_missing_author(app, db):
     settings_service.set_setting("openlibrary_contribution_enabled", True)
     book = _book(db, author_name=None)
-    status, value = ol_service.contribute_book(book)
-    assert (status, value) == ("missing_author", None)
+    assert ol_service.contribute_book(book) == ("missing_author", None, None)
 
 
 def test_contribute_book_rejects_single_word_author_name(app, db):
     """Open Library's /books/add form requires a first + last name."""
     settings_service.set_setting("openlibrary_contribution_enabled", True)
     book = _book(db, author_name="Prince")
-    status, value = ol_service.contribute_book(book)
-    assert (status, value) == ("missing_author", None)
+    assert ol_service.contribute_book(book) == ("missing_author", None, None)
 
 
 def test_contribute_book_missing_isbn(app, db):
     settings_service.set_setting("openlibrary_contribution_enabled", True)
     book = _book(db, isbn=None)
-    status, value = ol_service.contribute_book(book)
-    assert (status, value) == ("missing_isbn", None)
+    assert ol_service.contribute_book(book) == ("missing_isbn", None, None)
 
 
 def test_contribute_book_auth_failed(app, db, monkeypatch):
     settings_service.set_setting("openlibrary_contribution_enabled", True)
     monkeypatch.setattr(ol_service, "_login", lambda session: False)
     book = _book(db)
-    status, value = ol_service.contribute_book(book)
-    assert (status, value) == ("auth_failed", None)
+    assert ol_service.contribute_book(book) == ("auth_failed", None, None)
 
 
 def test_contribute_book_network_error(app, db, monkeypatch):
@@ -100,23 +103,15 @@ def test_contribute_book_network_error(app, db, monkeypatch):
     monkeypatch.setattr(requests.Session, "post", raise_error)
 
     book = _book(db)
-    status, value = ol_service.contribute_book(book)
-    assert (status, value) == ("network_error", None)
+    assert ol_service.contribute_book(book) == ("network_error", None, None)
 
 
-def test_contribute_book_ok(app, db, monkeypatch):
+def test_contribute_book_ok_without_a_cover(app, db, monkeypatch):
     settings_service.set_setting("openlibrary_contribution_enabled", True)
-    monkeypatch.setattr(ol_service, "_login", lambda session: True)
-    monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
+    _make_ok(monkeypatch)
 
-    class FakeResponse:
-        url = "https://openlibrary.org/books/OL123M/XIII"
-
-    monkeypatch.setattr(requests.Session, "post", lambda self, *a, **k: FakeResponse())
-
-    book = _book(db)
-    status, value = ol_service.contribute_book(book)
-    assert (status, value) == ("ok", "OL123M")
+    book = _book(db)  # no cover_image
+    assert ol_service.contribute_book(book) == ("ok", "OL123M", None)
 
 
 def test_contribute_book_rejected_when_response_has_no_edition_olid(app, db, monkeypatch):
@@ -130,8 +125,47 @@ def test_contribute_book_rejected_when_response_has_no_edition_olid(app, db, mon
     monkeypatch.setattr(requests.Session, "post", lambda self, *a, **k: FakeResponse())
 
     book = _book(db)
-    status, value = ol_service.contribute_book(book)
-    assert (status, value) == ("rejected", None)
+    assert ol_service.contribute_book(book) == ("rejected", None, None)
+
+
+def test_contribute_book_uploads_the_cover_when_present(app, db, monkeypatch, tmp_path):
+    settings_service.set_setting("openlibrary_contribution_enabled", True)
+    app.config["COVERS_DIR"] = tmp_path
+    (tmp_path / "cover.jpg").write_bytes(b"fake-jpeg-bytes")
+
+    monkeypatch.setattr(ol_service, "_login", lambda session: True)
+    monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
+    monkeypatch.setattr(ol_service, "_add_cover", lambda session, olid, cover_path: True)
+
+    class FakeResponse:
+        url = "https://openlibrary.org/books/OL123M/XIII"
+
+    monkeypatch.setattr(requests.Session, "post", lambda self, *a, **k: FakeResponse())
+
+    book = _book(db, cover_image="cover.jpg")
+    assert ol_service.contribute_book(book) == ("ok", "OL123M", True)
+
+
+def test_contribute_book_reports_cover_upload_failure_without_failing_the_whole_thing(app, db, monkeypatch, tmp_path):
+    settings_service.set_setting("openlibrary_contribution_enabled", True)
+    app.config["COVERS_DIR"] = tmp_path
+
+    monkeypatch.setattr(ol_service, "_login", lambda session: True)
+    monkeypatch.setattr(ol_service, "_find_author_key", lambda session, name: None)
+    monkeypatch.setattr(ol_service, "_add_cover", lambda session, olid, cover_path: False)
+
+    class FakeResponse:
+        url = "https://openlibrary.org/books/OL123M/XIII"
+
+    monkeypatch.setattr(requests.Session, "post", lambda self, *a, **k: FakeResponse())
+
+    book = _book(db, cover_image="missing-cover.jpg")
+    assert ol_service.contribute_book(book) == ("ok", "OL123M", False)
+
+
+def test_add_cover_returns_false_when_file_is_missing(app, tmp_path):
+    session = requests.Session()
+    assert ol_service._add_cover(session, "OL123M", tmp_path / "does-not-exist.jpg") is False
 
 
 def test_primary_identifier_prefers_isbn13():

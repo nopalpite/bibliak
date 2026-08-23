@@ -137,7 +137,7 @@ def test_contribute_to_openlibrary_route_persists_the_returned_olid(client, db, 
 
     monkeypatch.setattr(
         "app.routes.books.openlibrary_contribute_service.contribute_book",
-        lambda book: ("ok", "OL123M"),
+        lambda book: ("ok", "OL123M", None),
     )
     response = client.post(f"/books/{book_id}/contribute-to-openlibrary")
     assert response.status_code == 200
@@ -153,7 +153,7 @@ def test_contribute_to_openlibrary_route_does_not_persist_on_failure(client, db,
 
     monkeypatch.setattr(
         "app.routes.books.openlibrary_contribute_service.contribute_book",
-        lambda book: ("missing_author", None),
+        lambda book: ("missing_author", None, None),
     )
     response = client.post(f"/books/{book_id}/contribute-to-openlibrary")
     assert response.status_code == 200

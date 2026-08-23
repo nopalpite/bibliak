@@ -255,11 +255,13 @@ def toggle_read(book_id):
 @books_bp.route("/<int:book_id>/contribute-to-openlibrary", methods=["POST"])
 def contribute_to_openlibrary(book_id):
     book = Book.query.get_or_404(book_id)
-    status, value = openlibrary_contribute_service.contribute_book(book)
+    status, olid, cover_uploaded = openlibrary_contribute_service.contribute_book(book)
     if status == "ok":
-        book.openlibrary_edition_id = value
+        book.openlibrary_edition_id = olid
         db.session.commit()
-    return render_template("partials/openlibrary_contribution_result.html", status=status, olid=value)
+    return render_template(
+        "partials/openlibrary_contribution_result.html", status=status, olid=olid, cover_uploaded=cover_uploaded
+    )
 
 
 def _form_data():

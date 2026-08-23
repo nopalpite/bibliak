@@ -228,5 +228,7 @@
   "Open Library requires an ISBN. Add one to this book, then try again.": "Open Library requires an ISBN. Add one to this book, then try again.",
   "Open Library rejected the configured account credentials.": "Open Library rejected the configured account credentials.",
   "Could not reach Open Library. Try again shortly.": "Could not reach Open Library. Try again shortly.",
-  "Open Library did not accept the submission.": "Open Library did not accept the submission."
+  "Open Library did not accept the submission.": "Open Library did not accept the submission.",
+  "Contribute \"{title}\" to Open Library using your configured account? This sends the title, author(s), publisher, date, ISBN and cover. Double-check first that this book isn't already listed there under a different edition.": "Contribute \"{title}\" to Open Library using your configured account? This sends the title, author(s), publisher, date, ISBN and cover. Double-check first that this book isn't already listed there under a different edition.",
+  "The cover couldn't be uploaded — you can add it directly on the Open Library page.": "The cover couldn't be uploaded — you can add it directly on the Open Library page."
 }

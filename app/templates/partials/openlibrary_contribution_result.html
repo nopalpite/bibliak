@@ -3,6 +3,9 @@
   ✓ {{ t('Added to Open Library.') }}
   <a href="https://openlibrary.org/books/{{ olid }}" target="_blank" rel="noopener" class="underline">{{ t('View on Open Library') }}</a>
 </p>
+{% if cover_uploaded == false %}
+<p class="text-xs mt-1" style="color: var(--ink-muted);">{{ t("The cover couldn't be uploaded — you can add it directly on the Open Library page.") }}</p>
+{% endif %}
 {% elif status == 'missing_author' %}
 <p class="text-xs mt-2" style="color: var(--accent);">
   ⚠️ {{ t('Open Library requires a full author name (first and last). Edit the book to add one, then try again.') }}
