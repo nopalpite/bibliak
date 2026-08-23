@@ -120,9 +120,20 @@ All variables are read from `.env` (copied from `.env.example`). None are requir
 | `PRIORITY_API` | `openlibrary` | Which ISBN metadata source to try first: `openlibrary` or `googlebooks`. Also configurable at runtime from Administration > Settings (that setting takes precedence once set). |
 | `GOOGLE_BOOKS_API_KEY` | *(empty)* | Google Books API key. Without a key, Google Books' rate limit is low enough to be unusable in practice, so it's skipped entirely (Open Library is used alone) until one is set. |
 | `CONTACT_INFO` | *(empty)* | An email or phone number sent in the `User-Agent` header to Open Library / Google Books. Recommended: Open Library grants a 3x higher rate limit (3 req/s instead of 1) to identified requests. |
-| `OPENLIBRARY_ACCESS_KEY` / `OPENLIBRARY_SECRET_KEY` | *(empty)* | Your Open Library account's S3-style access/secret key pair (found in your account settings on openlibrary.org — not your password). Optional: enables a "Contribute this book to Open Library" action on the book detail page, letting you add books Open Library doesn't have yet under your own account. Also requires turning the feature on from Administration > Settings (off by default even when configured), and is always sent one book at a time with an explicit confirmation — never automatic or in bulk. |
+| `OPENLIBRARY_ACCESS_KEY` / `OPENLIBRARY_SECRET_KEY` | *(empty)* | Your Internet Archive account's S3-style access/secret key pair — see [Getting Open Library S3 keys](#getting-open-library-s3-keys) below. **Not** your Open Library email/password: those are rejected outright. Optional: enables a "Contribute this book to Open Library" action on the book detail page, letting you add books Open Library doesn't have yet under your own account. Also requires turning the feature on from Administration > Settings (off by default even when configured), and is always sent one book at a time with an explicit confirmation — never automatic or in bulk. |
 | `HOST_IP` | *(empty)* | Local IP address of the machine hosting Docker (e.g. `192.168.1.20`). Needed so the self-signed HTTPS certificate is valid for that address too, not just `localhost` — required for camera scanning from a smartphone on the network. |
 | `HTTPS_AUTOSIGNE` | `true` | `true`: the container generates and serves its own self-signed HTTPS certificate. `false`: TLS is assumed to be terminated upstream (reverse proxy); the container serves plain HTTP on port 8000. See [Running behind a reverse proxy](#running-behind-a-reverse-proxy) above. |
+
+### Getting Open Library S3 keys
+
+Open Library accounts are Internet Archive accounts, and contributing books requires archive.org's **S3-style API keys** — not your regular email/password (those are rejected by the login endpoint the app uses).
+
+1. Log in at [archive.org/account/login](https://archive.org/account/login) with your Open Library / Internet Archive credentials.
+2. Once logged in, go to [archive.org/account/s3.php](https://archive.org/account/s3.php).
+3. Copy the **access key** into `OPENLIBRARY_ACCESS_KEY`, and the **secret key** into `OPENLIBRARY_SECRET_KEY`.
+4. Restart the container, then turn the feature on from Administration > Settings (it stays off by default even once the keys are set).
+
+These keys grant broad access to your Internet Archive account, not just Open Library book contributions — treat them like a password. If you'd rather not use your personal account for this, create a separate Internet Archive account dedicated to contributions.
 
 ## Local development (without Docker)
 

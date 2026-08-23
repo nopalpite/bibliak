@@ -35,7 +35,11 @@
         {{ t('Allow contributing missing books to Open Library') }}
       </label>
       {% if not openlibrary_keys_configured %}
-      <p class="text-xs mt-1" style="color: var(--ink-muted);">{{ t('Requires OPENLIBRARY_ACCESS_KEY and OPENLIBRARY_SECRET_KEY to be configured.') }}</p>
+      <p class="text-xs mt-1" style="color: var(--ink-muted);">
+        {{ t('Requires OPENLIBRARY_ACCESS_KEY and OPENLIBRARY_SECRET_KEY to be configured.') }}
+        {{ t('These are Internet Archive S3 keys from') }}
+        <a href="https://archive.org/account/s3.php" target="_blank" rel="noopener" class="underline">archive.org/account/s3.php</a>{{ t(', not your Open Library password.') }}
+      </p>
       {% else %}
       <p class="text-xs mt-1" style="color: var(--ink-muted);">{{ t('Adds a "Contribute to Open Library" action on each book\'s page, submitted under your configured Open Library account. Always asks for confirmation before sending anything.') }}</p>
       {% endif %}
