@@ -25,6 +25,17 @@ from app.services.settings_service import get_setting
 BASE_URL = "https://openlibrary.org"
 TIMEOUT = 10  # seconds — a deliberate, one-off action, not a hot path
 
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _readable_error_snippet(html, limit=1500):
+    """Strips HTML tags so a logged error page is actually readable instead
+    of a wall of markup with the useful bit (title, error message) buried
+    past the first few hundred characters of boilerplate <head>."""
+    text = _TAG_RE.sub(" ", html or "")
+    text = re.sub(r"\s+", " ", text).strip()
+    return text[:limit]
+
 
 def _http_headers():
     """A default `requests` User-Agent is silently rejected by some sites on
@@ -65,7 +76,8 @@ def _login(session):
     if response.ok and session.cookies:
         return True
     current_app.logger.warning(
-        "Open Library login failed: HTTP %s, body: %.300s", response.status_code, response.text
+        "Open Library login failed: HTTP %s, body: %s",
+        response.status_code, _readable_error_snippet(response.text),
     )
     return False
 
@@ -212,8 +224,8 @@ def contribute_book(book):
     olid = _extract_olid(response)
     if not olid:
         current_app.logger.warning(
-            "Open Library did not return an edition ID: final URL %s, HTTP %s, body: %.300s",
-            response.url, response.status_code, response.text,
+            "Open Library did not return an edition ID: final URL %s, HTTP %s, body: %s",
+            response.url, response.status_code, _readable_error_snippet(response.text),
         )
         return "rejected", None, None
 
