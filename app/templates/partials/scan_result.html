@@ -23,6 +23,15 @@
     </form>
     <div id="title-search-results"></div>
   </div>
+
+  <div class="mt-4 pt-4 border-t" style="border-color: var(--border);">
+    <p class="text-xs mb-2" style="color: var(--ink-muted);">
+      {{ t("Not on Open Library at all? You can add it yourself — you'll be asked for the ISBN ({isbn}) again.", isbn=isbn) }}
+    </p>
+    <a href="https://openlibrary.org/books/add" target="_blank" rel="noopener" class="text-sm underline font-medium" style="color: var(--accent);">
+      {{ t('Add it on Open Library ↗') }}
+    </a>
+  </div>
   {% endif %}
 </div>
 {% elif result %}

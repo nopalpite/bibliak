@@ -112,6 +112,7 @@ def test_search_not_found_shows_generic_message(client, db, monkeypatch):
     response = client.post("/scan/search", data={"isbn": "9782505004900"})
     assert b"No information found for this ISBN" in response.data
     assert b'hx-post="/scan/search-title"' in response.data  # title-search fallback offered
+    assert b'href="https://openlibrary.org/books/add"' in response.data
 
 
 def test_search_network_error_does_not_offer_the_title_search_fallback(client, db, monkeypatch):
@@ -123,6 +124,7 @@ def test_search_network_error_does_not_offer_the_title_search_fallback(client, d
     first = client.post("/scan/search", data={"isbn": "9782505004900"})
     final = _drive_to_completion(client, first)
     assert b'hx-post="/scan/search-title"' not in final.data
+    assert b'href="https://openlibrary.org/books/add"' not in final.data
 
 
 def test_retry_without_prior_search_shows_expired_message(client, db):
