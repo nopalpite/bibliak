@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask
+from sqlalchemy import inspect, text
 
 from .config import Config
 from .extensions import db, migrate
@@ -44,31 +45,35 @@ def create_app(config_class=Config):
 
     @app.cli.command("init-db")
     def init_db():
-        """Creates the tables if they don't exist yet (first launch), and
-        applies small ad-hoc migrations for columns added since
-        (create_all() never alters existing tables).
+        """Brings the database up to the latest schema via Alembic
+        (migrations/), run on every container start.
 
-        For finer-grained schema evolution management going forward, you can
-        initialize Alembic with:
-            flask db init
-            flask db migrate -m "initial state"
-            flask db upgrade
+        A database created before Alembic was wired up here (tables already
+        exist, no alembic_version table yet) is stamped as already matching
+        the baseline migration instead of Alembic trying to re-create tables
+        that are already there — after applying the one ad-hoc column fix
+        that predates the baseline, for anyone jumping straight from a very
+        old version.
         """
+        from flask_migrate import stamp, upgrade
+
         with app.app_context():
-            db.create_all()
-            _apply_adhoc_migrations()
+            inspector = inspect(db.engine)
+            pre_alembic_db = (
+                "books" in inspector.get_table_names()
+                and "alembic_version" not in inspector.get_table_names()
+            )
+            if pre_alembic_db:
+                _apply_adhoc_migrations()
+                stamp()
+            upgrade()
         print("Database initialized.")
 
     def _apply_adhoc_migrations():
-        """Adds missing columns to an already existing database, without
-        touching the data. Idempotent: does nothing if the column already
-        exists."""
-        from sqlalchemy import inspect, text
-
+        """Adds the "read" column to a database predating both it and
+        Alembic being wired up here. Idempotent: does nothing if the column
+        already exists."""
         inspector = inspect(db.engine)
-        if "books" not in inspector.get_table_names():
-            return  # table not created yet, create_all() just laid everything out correctly
-
         columns = {c["name"] for c in inspector.get_columns("books")}
         if "read" not in columns:
             with db.engine.begin() as connection:

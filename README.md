@@ -9,9 +9,11 @@ Self-hosted app for managing a comic book and book collection — no account, no
 - Manual book entry with tags, location, authors, autocomplete on existing reference data. Series and publisher must be chosen from existing entries (dropdown, with quick creation via a "+" button without leaving the page) to avoid duplicates caused by typos. The volume number is set via an incremental stepper (+/-) as well as direct input.
 - Add by barcode scan (smartphone camera) or manual ISBN entry (desktop/tablet), with automatic metadata retrieval via Open Library
 - Automatic cover retrieval, or manual photo capture / upload
-- Single-page administration (tabs, no page reload): general settings, reference data management (types, conditions, publishers, series, tags, locations — with duplicate merging), JSON export/import of the whole collection
+- Single-page administration (tabs, no page reload): general settings, reference data management (types, conditions, publishers, series, tags, locations — with duplicate merging), JSON and CSV export/import of the whole collection
 - **Duplicate detection**, applied uniformly everywhere (manual add, scan, import): by ISBN first, falling back to title + volume if the ISBN is missing. Live warning while typing, blocked on save with the option to confirm anyway, duplicates automatically skipped on import. Policy is configurable (or can be disabled) from Administration > Settings.
-- **Read status**: read / unread, toggle button on the detail page, dedicated filter on the Collection page, preserved on JSON export/import
+- **Read status**: read / unread, toggle button on the detail page, dedicated filter on the Collection page, preserved on export/import
+- **Bulk actions** on the Collection page (grid and list views): select multiple books to add a tag, set a location, or delete them in one go
+- **Stats page**: totals, read/unread split, breakdown by type, publisher, author, and decade
 - Dark / light mode, available from first launch
 
 ## Quick start (Docker)
@@ -160,10 +162,11 @@ The architecture is deliberately layered to stay easy to evolve:
 
 ## Schema evolution (migrations)
 
-The very first launch creates the tables directly (`flask init-db`, already wired into the Docker image). If you later modify the models and want schema version tracking via Alembic:
+Schema changes are tracked with Alembic (`migrations/`), applied via `flask init-db` on every container start (already wired into the Docker image and `entrypoint.sh`). An install that predates this (tables already exist, no `alembic_version` table yet) is detected automatically and stamped as already matching the baseline migration instead of Alembic trying to re-create tables that are already there.
+
+After changing a model, generate and commit the migration:
 
 ```bash
-docker compose exec biblio-app flask db init
 docker compose exec biblio-app flask db migrate -m "change description"
 docker compose exec biblio-app flask db upgrade
 ```
