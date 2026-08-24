@@ -4,6 +4,7 @@ from app.extensions import db
 from app.models import Book, Location, Publisher, Series, Tag
 from app.services.search_service import group_by_series, search_books
 from app.services.settings_service import get_setting
+from app.services.stats_service import collection_stats
 
 main_bp = Blueprint("main", __name__)
 
@@ -59,6 +60,11 @@ def set_volume_count(series_id):
     series.expected_volume_count = request.form.get("expected_volume_count", type=int)
     db.session.commit()
     return redirect(url_for("main.series_detail", series_id=series.id))
+
+
+@main_bp.route("/stats")
+def stats():
+    return render_template("stats.html", stats=collection_stats())
 
 
 @main_bp.route("/certificate")

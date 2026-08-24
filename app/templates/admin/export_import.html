@@ -10,21 +10,30 @@
     <h2 class="text-sm font-semibold mb-2">{{ t('Export the collection') }}</h2>
     <p class="text-sm mb-3" style="color: var(--ink-muted);">
       {{ tn('{n} book currently saved.', '{n} books currently saved.', book_count) }}
-      {{ t('Download a full backup in JSON format.') }}
+      {{ t('Download a full backup, in JSON (exact re-import) or CSV (for a spreadsheet).') }}
     </p>
-    <a href="{{ url_for('admin.export_json') }}" class="btn-primary inline-block px-4 py-2 rounded-lg text-sm font-medium">
-      {{ t('Download the export (.json)') }}
-    </a>
+    <div class="flex flex-wrap gap-2">
+      <a href="{{ url_for('admin.export_json') }}" class="btn-primary inline-block px-4 py-2 rounded-lg text-sm font-medium">
+        {{ t('Download the export (.json)') }}
+      </a>
+      <a href="{{ url_for('admin.export_csv') }}" class="inline-block px-4 py-2 rounded-lg text-sm border font-medium" style="border-color: var(--border);">
+        {{ t('Download the export (.csv)') }}
+      </a>
+    </div>
   </div>
 
   <div class="card p-5">
     <h2 class="text-sm font-semibold mb-2">{{ t('Import a backup') }}</h2>
     <p class="text-sm mb-3" style="color: var(--ink-muted);">
-      {{ t('Re-imports books from a previously exported JSON file. Books are added to the existing collection (no replacement).') }}
+      {{ t('Re-imports books from a previously exported JSON or CSV file. Books are added to the existing collection (no replacement).') }}
     </p>
-    <form hx-post="{{ url_for('admin.import_json') }}" hx-target="#admin-content" hx-encoding="multipart/form-data" class="flex flex-wrap items-center gap-2">
+    <form hx-post="{{ url_for('admin.import_json') }}" hx-target="#admin-content" hx-encoding="multipart/form-data" class="flex flex-wrap items-center gap-2 mb-2">
       <input type="file" name="file" accept="application/json" required class="text-sm">
-      <button type="submit" class="px-4 py-2 rounded-lg text-sm border" style="border-color: var(--border);">{{ t('Import') }}</button>
+      <button type="submit" class="px-4 py-2 rounded-lg text-sm border" style="border-color: var(--border);">{{ t('Import JSON') }}</button>
+    </form>
+    <form hx-post="{{ url_for('admin.import_csv') }}" hx-target="#admin-content" hx-encoding="multipart/form-data" class="flex flex-wrap items-center gap-2">
+      <input type="file" name="file" accept="text/csv,.csv" required class="text-sm">
+      <button type="submit" class="px-4 py-2 rounded-lg text-sm border" style="border-color: var(--border);">{{ t('Import CSV') }}</button>
     </form>
   </div>
 

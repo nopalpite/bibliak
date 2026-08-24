@@ -1,3 +1,5 @@
+import csv
+import io
 import json
 from io import BytesIO
 
@@ -171,36 +173,46 @@ def merge_reference(model_name):
 
 # --- Export / Import (collection backup) ---
 
-@admin_bp.route("/export.json")
-def export_json():
-    books = Book.query.options(
+CSV_COLUMNS = [
+    "title", "item_type", "isbn", "series", "volume", "authors", "publisher",
+    "publication_date", "summary", "cover_image", "location", "condition",
+    "personal_notes", "read", "tags",
+]
+
+
+def _all_books_eager():
+    return Book.query.options(
         selectinload(Book.authors),
         selectinload(Book.publisher),
         selectinload(Book.series),
         selectinload(Book.location),
         selectinload(Book.tags),
     ).all()
-    data = [
-        {
-            "title": b.title,
-            "item_type": b.item_type,
-            "isbn": b.isbn,
-            "series": b.series.name if b.series else None,
-            "volume": b.volume,
-            "authors": [a.full_name for a in b.authors],
-            "publisher": b.publisher.name if b.publisher else None,
-            "publication_date": b.publication_date,
-            "summary": b.summary,
-            "cover_image": b.cover_image,
-            "location": b.location.label if b.location else None,
-            "condition": b.condition,
-            "personal_notes": b.personal_notes,
-            "read": b.read,
-            "tags": [t.label for t in b.tags],
-        }
-        for b in books
-    ]
 
+
+def _book_export_dict(b):
+    return {
+        "title": b.title,
+        "item_type": b.item_type,
+        "isbn": b.isbn,
+        "series": b.series.name if b.series else None,
+        "volume": b.volume,
+        "authors": [a.full_name for a in b.authors],
+        "publisher": b.publisher.name if b.publisher else None,
+        "publication_date": b.publication_date,
+        "summary": b.summary,
+        "cover_image": b.cover_image,
+        "location": b.location.label if b.location else None,
+        "condition": b.condition,
+        "personal_notes": b.personal_notes,
+        "read": b.read,
+        "tags": [t.label for t in b.tags],
+    }
+
+
+@admin_bp.route("/export.json")
+def export_json():
+    data = [_book_export_dict(b) for b in _all_books_eager()]
     buffer = BytesIO(json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8"))
     return send_file(
         buffer,
@@ -210,6 +222,97 @@ def export_json():
     )
 
 
+@admin_bp.route("/export.csv")
+def export_csv():
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=CSV_COLUMNS)
+    writer.writeheader()
+    for b in _all_books_eager():
+        row = _book_export_dict(b)
+        row["authors"] = ", ".join(row["authors"])
+        row["tags"] = ", ".join(row["tags"])
+        writer.writerow(row)
+
+    # utf-8-sig: Excel otherwise mis-reads accented characters without a BOM.
+    buffer = BytesIO(output.getvalue().encode("utf-8-sig"))
+    return send_file(
+        buffer,
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name="collection_export.csv",
+    )
+
+
+def _import_values_from_json_item(item):
+    return {
+        "title": item.get("title", ""),
+        "item_type": item.get("item_type"),
+        "isbn": item.get("isbn"),
+        "volume": item.get("volume"),
+        "publication_date": item.get("publication_date"),
+        "summary": item.get("summary"),
+        "condition": item.get("condition"),
+        "personal_notes": item.get("personal_notes"),
+        "read": item.get("read", (item.get("read_count", 0) or 0) >= 1),
+        "publisher": item.get("publisher"),
+        "series": item.get("series"),
+        "location": item.get("location"),
+        "authors": item.get("authors", []),
+        "tags": item.get("tags", []),
+    }
+
+
+def _split_csv_list(value):
+    return [v.strip() for v in (value or "").split(",") if v.strip()]
+
+
+def _import_values_from_csv_row(row):
+    volume = (row.get("volume") or "").strip()
+    return {
+        "title": row.get("title", ""),
+        "item_type": row.get("item_type") or None,
+        "isbn": row.get("isbn") or None,
+        "volume": int(volume) if volume.lstrip("-").isdigit() else None,
+        "publication_date": row.get("publication_date") or None,
+        "summary": row.get("summary") or None,
+        "condition": row.get("condition") or None,
+        "personal_notes": row.get("personal_notes") or None,
+        "read": (row.get("read") or "").strip().lower() in ("true", "1", "yes"),
+        "publisher": row.get("publisher") or None,
+        "series": row.get("series") or None,
+        "location": row.get("location") or None,
+        "authors": _split_csv_list(row.get("authors")),
+        "tags": _split_csv_list(row.get("tags")),
+    }
+
+
+def _import_all(values_list):
+    """Shared create-or-skip loop for both JSON and CSV import: a book
+    already present (per the configured duplicate detection policy) is
+    skipped rather than duplicated."""
+    imported_count = 0
+    skipped_count = 0
+    for values in values_list:
+        duplicate, _criterion = book_service.find_duplicate(values)
+        if duplicate:
+            skipped_count += 1
+            continue
+        book_service.create_book(values)
+        imported_count += 1
+    return imported_count, skipped_count
+
+
+def _import_message(imported_count, skipped_count):
+    message = i18n_service.tn('{n} book imported.', '{n} books imported.', imported_count)
+    if skipped_count:
+        message += " " + i18n_service.tn(
+            '{n} duplicate skipped (already in the collection).',
+            '{n} duplicates skipped (already in the collection).',
+            skipped_count,
+        )
+    return message
+
+
 @admin_bp.route("/import", methods=["POST"])
 def import_json():
     file = request.files.get("file")
@@ -217,45 +320,21 @@ def import_json():
         return render_template("admin/export_import.html", **_export_import_context())
 
     data = json.load(file.stream)
-    imported_count = 0
-    skipped_count = 0
-
-    for item in data:
-        values = {
-            "title": item.get("title", ""),
-            "item_type": item.get("item_type"),
-            "isbn": item.get("isbn"),
-            "volume": item.get("volume"),
-            "publication_date": item.get("publication_date"),
-            "summary": item.get("summary"),
-            "condition": item.get("condition"),
-            "personal_notes": item.get("personal_notes"),
-            "read": item.get("read", (item.get("read_count", 0) or 0) >= 1),
-            "publisher": item.get("publisher"),
-            "series": item.get("series"),
-            "location": item.get("location"),
-            "authors": item.get("authors", []),
-            "tags": item.get("tags", []),
-        }
-
-        # Applies the same detection policy as the rest of the application:
-        # a book already present is skipped rather than duplicated.
-        duplicate, _criterion = book_service.find_duplicate(values)
-        if duplicate:
-            skipped_count += 1
-            continue
-
-        book_service.create_book(values)
-        imported_count += 1
-
-    message = i18n_service.tn(
-        '{n} book imported.', '{n} books imported.', imported_count
+    imported_count, skipped_count = _import_all(_import_values_from_json_item(item) for item in data)
+    return render_template(
+        "admin/export_import.html", **_export_import_context(_import_message(imported_count, skipped_count))
     )
-    if skipped_count:
-        message += " " + i18n_service.tn(
-            '{n} duplicate skipped (already in the collection).',
-            '{n} duplicates skipped (already in the collection).',
-            skipped_count,
-        )
 
-    return render_template("admin/export_import.html", **_export_import_context(message))
+
+@admin_bp.route("/import-csv", methods=["POST"])
+def import_csv():
+    file = request.files.get("file")
+    if not file:
+        return render_template("admin/export_import.html", **_export_import_context())
+
+    text = file.stream.read().decode("utf-8-sig")
+    rows = csv.DictReader(io.StringIO(text))
+    imported_count, skipped_count = _import_all(_import_values_from_csv_row(row) for row in rows)
+    return render_template(
+        "admin/export_import.html", **_export_import_context(_import_message(imported_count, skipped_count))
+    )

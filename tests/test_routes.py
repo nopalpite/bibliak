@@ -147,6 +147,19 @@ def test_quick_create_series_route(client, db):
     assert "Blacksad".encode() in response.data
 
 
+def test_stats_page_loads_with_empty_collection(client, db):
+    response = client.get("/stats")
+    assert response.status_code == 200
+
+
+def test_stats_page_loads_with_books(client, db):
+    client.post("/books/new", data={"title": "XIII", "item_type": "BD"})
+    response = client.get("/stats")
+    assert response.status_code == 200
+    assert b"XIII" not in response.data  # aggregate page, not a book list
+    assert "1".encode() in response.data
+
+
 def test_scan_page_loads(client):
     response = client.get("/scan/")
     assert response.status_code == 200
@@ -199,3 +212,84 @@ def test_import_json_skips_existing_duplicate(client, db):
 
     assert response.status_code == 200
     assert Book.query.count() == 1
+
+
+def test_export_csv_contains_created_book(client, db):
+    client.post(
+        "/books/new",
+        data={"title": "Export CSV", "item_type": "BD", "authors": "Jean Van Hamme, William Vance"},
+    )
+
+    response = client.get("/admin/export.csv")
+    assert response.status_code == 200
+    assert b"Export CSV" in response.data
+    assert b"Jean Van Hamme, William Vance" in response.data
+
+
+def test_import_csv_creates_a_book_with_authors_and_tags(client, db):
+    csv_content = (
+        "title,item_type,isbn,series,volume,authors,publisher,publication_date,summary,"
+        "cover_image,location,condition,personal_notes,read,tags\r\n"
+        'XIII,BD,,,"1","Jean Van Hamme, William Vance",Dargaud,1984,,,,,,"true","action, bd"\r\n'
+    ).encode("utf-8-sig")
+
+    response = client.post(
+        "/admin/import-csv",
+        data={"file": (io.BytesIO(csv_content), "backup.csv")},
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 200
+    book = Book.query.filter_by(title="XIII").first()
+    assert book is not None
+    assert book.volume == 1
+    assert book.read is True
+    assert {a.full_name for a in book.authors} == {"Jean Van Hamme", "William Vance"}
+    assert {t.label for t in book.tags} == {"action", "bd"}
+    assert book.publisher.name == "Dargaud"
+
+
+def test_import_csv_skips_existing_duplicate(client, db):
+    client.post("/books/new", data={"title": "Déjà là", "item_type": "BD", "volume": "1"})
+
+    csv_content = "title,item_type,volume\r\nDéjà là,BD,1\r\n".encode("utf-8-sig")
+    response = client.post(
+        "/admin/import-csv",
+        data={"file": (io.BytesIO(csv_content), "backup.csv")},
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 200
+    assert Book.query.count() == 1
+
+
+def test_csv_export_then_import_round_trips_a_book(client, db):
+    """The export format must be re-importable as-is."""
+    client.post(
+        "/books/new",
+        data={
+            "title": "Round Trip",
+            "item_type": "BD",
+            "authors": "Author One, Author Two",
+            "tags": "sf, classique",
+            "volume": "2",
+        },
+    )
+    exported = client.get("/admin/export.csv").data
+
+    for book in Book.query.all():
+        db.session.delete(book)
+    db.session.commit()
+
+    response = client.post(
+        "/admin/import-csv",
+        data={"file": (io.BytesIO(exported), "backup.csv")},
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 200
+    book = Book.query.filter_by(title="Round Trip").first()
+    assert book is not None
+    assert book.volume == 2
+    assert {a.full_name for a in book.authors} == {"Author One", "Author Two"}
+    assert {t.label for t in book.tags} == {"sf", "classique"}

@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ t('Stats') }} — BIBLIAK{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <p class="kicker mb-1">BIBLIAK</p>
+  <h1 class="font-display text-3xl font-medium mb-6">{{ t('Stats') }}</h1>
+
+  {% if stats.total == 0 %}
+  <div class="card p-5 text-sm" style="color: var(--ink-muted);">{{ t('No book matches') }}</div>
+  {% else %}
+
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+    <div class="card p-4">
+      <p class="text-2xl font-display font-medium">{{ stats.total }}</p>
+      <p class="text-xs mt-0.5" style="color: var(--ink-muted);">{{ tn('book', 'books', stats.total) }}</p>
+    </div>
+    <div class="card p-4">
+      <p class="text-2xl font-display font-medium">{{ stats.read_count }}</p>
+      <p class="text-xs mt-0.5" style="color: var(--ink-muted);">{{ t('Read') }}</p>
+    </div>
+    <div class="card p-4">
+      <p class="text-2xl font-display font-medium">{{ stats.unread_count }}</p>
+      <p class="text-xs mt-0.5" style="color: var(--ink-muted);">{{ t('Unread') }}</p>
+    </div>
+    <div class="card p-4">
+      <p class="text-2xl font-display font-medium">{{ stats.complete_series_count }}/{{ stats.tracked_series_count }}</p>
+      <p class="text-xs mt-0.5" style="color: var(--ink-muted);">{{ t('Complete series') }}</p>
+    </div>
+  </div>
+
+  {% macro bar_list(title, entries) %}
+  {% if entries %}
+  <div class="card p-5 mb-4">
+    <h2 class="text-sm font-semibold mb-3">{{ title }}</h2>
+    {% set top = entries[0][1] %}
+    <div class="space-y-2">
+      {% for label, count in entries %}
+      <div class="flex items-center gap-3 text-sm">
+        <span class="w-32 sm:w-40 flex-shrink-0 truncate" style="color: var(--ink-muted);">{{ label }}</span>
+        <span class="flex-1 h-3 rounded-full overflow-hidden" style="background: var(--surface-muted);">
+          <span class="block h-full rounded-full" style="width: {{ (count / top * 100)|round(1) }}%; background: var(--accent);"></span>
+        </span>
+        <span class="w-8 flex-shrink-0 text-right font-code text-xs">{{ count }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  {% endmacro %}
+
+  {{ bar_list(t('By type'), stats.by_item_type) }}
+  {{ bar_list(t('Top publishers'), stats.by_publisher) }}
+  {{ bar_list(t('Top authors'), stats.by_author) }}
+  {{ bar_list(t('By decade'), stats.by_decade) }}
+
+  {% endif %}
+</div>
+{% endblock %}
