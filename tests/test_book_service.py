@@ -93,6 +93,60 @@ def test_delete_book(app, db):
     assert db.session.get(Book, book_id) is None
 
 
+def test_bulk_delete(app, db):
+    a = book_service.create_book(_minimal_data(title="A"))
+    b = book_service.create_book(_minimal_data(title="B"))
+    kept = book_service.create_book(_minimal_data(title="C"))
+
+    deleted_count = book_service.bulk_delete([a.id, b.id])
+
+    assert deleted_count == 2
+    assert db.session.get(Book, a.id) is None
+    assert db.session.get(Book, b.id) is None
+    assert db.session.get(Book, kept.id) is not None
+
+
+def test_bulk_delete_with_empty_selection_is_a_noop(app, db):
+    book = book_service.create_book(_minimal_data())
+    assert book_service.bulk_delete([]) == 0
+    assert db.session.get(Book, book.id) is not None
+
+
+def test_bulk_set_location(app, db):
+    a = book_service.create_book(_minimal_data(title="A"))
+    b = book_service.create_book(_minimal_data(title="B"))
+
+    count = book_service.bulk_set_location([a.id, b.id], "Salon")
+
+    assert count == 2
+    assert a.location.label == "Salon"
+    assert b.location.label == "Salon"
+    assert a.location_id == b.location_id  # same Location row, not duplicated
+
+
+def test_bulk_set_location_blank_label_is_a_noop(app, db):
+    book = book_service.create_book(_minimal_data())
+    assert book_service.bulk_set_location([book.id], "  ") == 0
+    assert book.location is None
+
+
+def test_bulk_add_tag(app, db):
+    a = book_service.create_book(_minimal_data(title="A", tags=["existing"]))
+    b = book_service.create_book(_minimal_data(title="B"))
+
+    count = book_service.bulk_add_tag([a.id, b.id], "new-tag")
+
+    assert count == 2
+    assert {t.label for t in a.tags} == {"existing", "new-tag"}  # not duplicated
+    assert {t.label for t in b.tags} == {"new-tag"}
+
+
+def test_bulk_add_tag_blank_label_is_a_noop(app, db):
+    book = book_service.create_book(_minimal_data())
+    assert book_service.bulk_add_tag([book.id], "") == 0
+    assert book.tags == []
+
+
 def test_find_duplicate_by_isbn_takes_priority_over_title(app, db):
     book_service.create_book(_minimal_data(isbn="9782505004900", volume=1))
 

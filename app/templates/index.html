@@ -104,6 +104,31 @@
     </div>
   </form>
 
+  <!-- Bulk actions toolbar: hidden until at least one book is checked.
+       Checkboxes live inside #results (swapped by search/filters), but
+       reference this form by id via the HTML "form" attribute, so they
+       don't need to be physically nested inside it. -->
+  <form id="bulk-actions-form" method="post" class="hidden sticky top-0 z-20 card p-3 mb-4 flex flex-wrap items-center gap-2">
+    <span id="bulk-selected-count" class="text-sm font-medium px-1"></span>
+    <input type="text" name="tag" placeholder="{{ t('Tag to add') }}"
+           class="px-2.5 py-1.5 rounded-md border text-sm bg-transparent" style="border-color: var(--border);">
+    <button type="submit" formaction="{{ url_for('books.bulk_add_tag') }}"
+            class="px-3 py-1.5 rounded-md text-xs border font-medium" style="border-color: var(--border);">
+      {{ t('Add tag') }}
+    </button>
+    <input type="text" name="location" placeholder="{{ t('Location') }}"
+           class="px-2.5 py-1.5 rounded-md border text-sm bg-transparent" style="border-color: var(--border);">
+    <button type="submit" formaction="{{ url_for('books.bulk_set_location') }}"
+            class="px-3 py-1.5 rounded-md text-xs border font-medium" style="border-color: var(--border);">
+      {{ t('Set location') }}
+    </button>
+    <button type="submit" formaction="{{ url_for('books.bulk_delete') }}"
+            onclick="return confirmBulkDelete();"
+            class="ml-auto px-3 py-1.5 rounded-md text-xs border font-medium" style="border-color: var(--accent); color: var(--accent);">
+      {{ t('Delete selected') }}
+    </button>
+  </form>
+
   <div id="results">
     {% if view == 'grid' %}
       {% include "partials/books_grid.html" %}
@@ -114,4 +139,35 @@
     {% endif %}
   </div>
 </div>
+
+<script>
+  const BULK_I18N = {
+    selectedOne: {{ t('{n} book selected')|tojson }},
+    selectedMany: {{ t('{n} books selected')|tojson }},
+    confirmDelete: {{ t('Permanently delete {n} selected books from the collection?')|tojson }},
+  };
+
+  function updateBulkToolbar() {
+    const toolbar = document.getElementById('bulk-actions-form');
+    const count = document.querySelectorAll('input[name="book_ids"]:checked').length;
+    if (count === 0) {
+      toolbar.classList.add('hidden');
+      return;
+    }
+    toolbar.classList.remove('hidden');
+    const label = count === 1 ? BULK_I18N.selectedOne : BULK_I18N.selectedMany;
+    document.getElementById('bulk-selected-count').textContent = label.replace('{n}', count);
+  }
+
+  function confirmBulkDelete() {
+    const count = document.querySelectorAll('input[name="book_ids"]:checked').length;
+    return confirm(BULK_I18N.confirmDelete.replace('{n}', count));
+  }
+
+  // A fresh search/filter swap re-renders #results with nothing checked:
+  // recompute (and hide) the toolbar so it doesn't linger with a stale count.
+  document.body.addEventListener('htmx:afterSwap', (e) => {
+    if (e.detail.target && e.detail.target.id === 'results') updateBulkToolbar();
+  });
+</script>
 {% endblock %}

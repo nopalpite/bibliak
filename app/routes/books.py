@@ -249,6 +249,28 @@ def toggle_read(book_id):
     return redirect(url_for("books.detail", book_id=book.id))
 
 
+# --- Bulk actions (multi-select on the Collection page, grid/list views) ---
+
+@books_bp.route("/bulk-delete", methods=["POST"])
+def bulk_delete():
+    book_service.bulk_delete(request.form.getlist("book_ids", type=int))
+    return redirect(url_for("main.index"))
+
+
+@books_bp.route("/bulk-set-location", methods=["POST"])
+def bulk_set_location():
+    book_ids = request.form.getlist("book_ids", type=int)
+    book_service.bulk_set_location(book_ids, request.form.get("location", ""))
+    return redirect(url_for("main.index"))
+
+
+@books_bp.route("/bulk-add-tag", methods=["POST"])
+def bulk_add_tag():
+    book_ids = request.form.getlist("book_ids", type=int)
+    book_service.bulk_add_tag(book_ids, request.form.get("tag", ""))
+    return redirect(url_for("main.index"))
+
+
 def _form_data():
     form = request.form
     return {

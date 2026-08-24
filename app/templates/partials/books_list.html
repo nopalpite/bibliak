@@ -11,6 +11,7 @@
   <table class="w-full text-sm">
     <thead>
       <tr class="text-left border-b" style="border-color: var(--border); color: var(--ink-muted);">
+        <th class="pl-4 py-3 font-medium w-8"></th>
         <th class="px-4 py-3 font-medium w-10"></th>
         <th class="px-2 py-3 font-medium">{{ t('Title') }}</th>
         <th class="px-4 py-3 font-medium hidden md:table-cell">{{ t('Series / Volume') }}</th>
@@ -24,6 +25,10 @@
     <tbody>
       {% for b in books %}
       <tr class="border-b last:border-0 hover:bg-black/[.02] cursor-pointer" style="border-color: var(--border);" onclick="window.location='{{ url_for('books.detail', book_id=b.id) }}'">
+        <td class="pl-4" onclick="event.stopPropagation()">
+          <input type="checkbox" form="bulk-actions-form" name="book_ids" value="{{ b.id }}" onchange="updateBulkToolbar()"
+                 class="w-4 h-4 cursor-pointer" aria-label="{{ t('Select {title}', title=b.title) }}">
+        </td>
         <td class="pl-4"><span class="book-spine h-6 inline-block {{ b.series.spine_color_class if b.series }}"></span></td>
         <td class="px-2 py-3 font-medium">{{ b.title }}</td>
         <td class="px-4 py-3 hidden md:table-cell" style="color: var(--ink-muted);">

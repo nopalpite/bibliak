@@ -53,7 +53,10 @@ def _resolve_series(data):
     return _get_or_create(Series, name=name) if name else None
 
 
-def _resolve_location(label):
+def resolve_location(label):
+    """Finds or creates a Location by its label. Public: also used directly
+    by the bulk "set location" action (see bulk_set_location below), which
+    has no per-book form to resolve a full `data` dict from."""
     label = (label or "").strip()
     return _get_or_create(Location, label=label) if label else None
 
@@ -67,7 +70,9 @@ def _resolve_authors(names):
     return result
 
 
-def _resolve_tags(labels):
+def resolve_tags(labels):
+    """Finds or creates each Tag by label. Public: also used directly by
+    the bulk "add tag" action (see bulk_add_tag below)."""
     result = []
     for label in labels:
         label = label.strip()
@@ -93,9 +98,9 @@ def _apply_data(book, data):
 
     book.publisher = _resolve_publisher(data)
     book.series = _resolve_series(data)
-    book.location = _resolve_location(data.get("location"))
+    book.location = resolve_location(data.get("location"))
     book.authors = _resolve_authors(data.get("authors", []))
-    book.tags = _resolve_tags(data.get("tags", []))
+    book.tags = resolve_tags(data.get("tags", []))
 
     return book
 
@@ -134,6 +139,46 @@ def toggle_read(book):
     book.read = not book.read
     db.session.commit()
     return book
+
+
+# --- Bulk actions (multi-select on the collection view) ---
+
+def bulk_delete(book_ids):
+    """Deletes every book in `book_ids`. Goes through delete_book() one by
+    one (not a bulk DB DELETE) so each cover file is cleaned up too."""
+    books = Book.query.filter(Book.id.in_(book_ids)).all() if book_ids else []
+    for book in books:
+        delete_book(book)
+    return len(books)
+
+
+def bulk_set_location(book_ids, label):
+    """Sets the same location on every book in `book_ids`, creating it if
+    it doesn't exist yet. No-op (returns 0) if the label is blank."""
+    location = resolve_location(label)
+    if not book_ids or not location:
+        return 0
+    books = Book.query.filter(Book.id.in_(book_ids)).all()
+    for book in books:
+        book.location = location
+    db.session.commit()
+    return len(books)
+
+
+def bulk_add_tag(book_ids, label):
+    """Adds the same tag to every book in `book_ids` (creating it if it
+    doesn't exist yet), without duplicating it on books that already have
+    it. No-op (returns 0) if the label is blank."""
+    tags = resolve_tags([label])
+    if not book_ids or not tags:
+        return 0
+    tag = tags[0]
+    books = Book.query.filter(Book.id.in_(book_ids)).all()
+    for book in books:
+        if tag not in book.tags:
+            book.tags.append(tag)
+    db.session.commit()
+    return len(books)
 
 
 def find_duplicate_by_isbn(isbn, exclude_id=None):

@@ -93,6 +93,45 @@ def test_delete_book_route(client, db):
     assert db.session.get(Book, book_id) is None
 
 
+def test_bulk_delete_route(client, db):
+    a = int(client.post("/books/new", data={"title": "A", "item_type": "BD"}).location.rstrip("/").rsplit("/", 1)[-1])
+    b = int(client.post("/books/new", data={"title": "B", "item_type": "BD"}).location.rstrip("/").rsplit("/", 1)[-1])
+
+    response = client.post("/books/bulk-delete", data={"book_ids": [str(a), str(b)]})
+
+    assert response.status_code == 302
+    assert db.session.get(Book, a) is None
+    assert db.session.get(Book, b) is None
+
+
+def test_bulk_set_location_route(client, db):
+    a = int(client.post("/books/new", data={"title": "A", "item_type": "BD"}).location.rstrip("/").rsplit("/", 1)[-1])
+
+    response = client.post("/books/bulk-set-location", data={"book_ids": [str(a)], "location": "Salon"})
+
+    assert response.status_code == 302
+    book = db.session.get(Book, a)
+    assert book.location.label == "Salon"
+
+
+def test_bulk_add_tag_route(client, db):
+    a = int(client.post("/books/new", data={"title": "A", "item_type": "BD"}).location.rstrip("/").rsplit("/", 1)[-1])
+
+    response = client.post("/books/bulk-add-tag", data={"book_ids": [str(a)], "tag": "favoris"})
+
+    assert response.status_code == 302
+    book = db.session.get(Book, a)
+    assert {t.label for t in book.tags} == {"favoris"}
+
+
+def test_collection_page_offers_bulk_selection(client, db):
+    client.post("/books/new", data={"title": "A", "item_type": "BD"})
+    response = client.get("/")
+    html = response.get_data(as_text=True)
+    assert 'name="book_ids"' in html
+    assert 'id="bulk-actions-form"' in html
+
+
 def test_delete_confirm_survives_quotes_and_apostrophes_in_title(client, db):
     """Regression test: the delete form's onsubmit embeds a |tojson payload.
     tojson wraps its output in literal double quotes, so if the surrounding

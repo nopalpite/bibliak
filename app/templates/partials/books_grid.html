@@ -9,7 +9,10 @@
 {% else %}
 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-5">
   {% for b in books %}
-  <a href="{{ url_for('books.detail', book_id=b.id) }}" class="group flex gap-2">
+  <div class="relative">
+    <input type="checkbox" form="bulk-actions-form" name="book_ids" value="{{ b.id }}" onchange="updateBulkToolbar()"
+           class="absolute top-2 left-2 z-20 w-4 h-4 cursor-pointer" aria-label="{{ t('Select {title}', title=b.title) }}">
+    <a href="{{ url_for('books.detail', book_id=b.id) }}" class="group flex gap-2">
     <span class="book-spine self-stretch group-hover:w-2 transition-all {{ b.series.spine_color_class if b.series }}"></span>
     <div class="flex-1 min-w-0">
       <div class="cover aspect-[2/3] rounded-lg overflow-hidden mb-2 relative" style="background: var(--surface-muted);">
@@ -31,7 +34,8 @@
         {%- if b.series -%}{{ b.series.name }}{% if b.volume %} T{{ b.volume }}{% endif %}{%- else -%}{{ b.author_list or b.item_type }}{%- endif -%}
       </p>
     </div>
-  </a>
+    </a>
+  </div>
   {% endfor %}
 </div>
 {% endif %}

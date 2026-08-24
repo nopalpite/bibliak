@@ -216,5 +216,13 @@
   "Download the export (.csv)": "Download the export (.csv)",
   "Re-imports books from a previously exported JSON or CSV file. Books are added to the existing collection (no replacement).": "Re-imports books from a previously exported JSON or CSV file. Books are added to the existing collection (no replacement).",
   "Import JSON": "Import JSON",
-  "Import CSV": "Import CSV"
+  "Import CSV": "Import CSV",
+  "Tag to add": "Tag to add",
+  "Add tag": "Add tag",
+  "Set location": "Set location",
+  "Delete selected": "Delete selected",
+  "{n} book selected": "{n} book selected",
+  "{n} books selected": "{n} books selected",
+  "Permanently delete {n} selected books from the collection?": "Permanently delete {n} selected books from the collection?",
+  "Select {title}": "Select {title}"
 }
