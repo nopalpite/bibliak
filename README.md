@@ -15,6 +15,7 @@ Self-hosted app for managing a comic book and book collection — no account, no
 - **Bulk actions** on the Collection page (grid and list views): select multiple books to add a tag, set a location, or delete them in one go
 - **Stats page**: totals, read/unread split, breakdown by type, publisher, author, and decade
 - Dark / light mode, available from first launch
+- 3 selectable color/typography **themes** (Classic, Slate, Coral) from Administration > Settings
 
 ## Quick start (Docker)
 

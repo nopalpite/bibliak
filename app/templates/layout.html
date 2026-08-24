@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ current_locale() }}" class="scroll-smooth">
+<html lang="{{ current_locale() }}" class="scroll-smooth theme-{{ global_theme }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -7,7 +7,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 <script src="https://cdn.tailwindcss.com"></script>
@@ -43,6 +43,12 @@
     --card-shadow: 0 1px 2px rgba(34,31,27,.04), 0 10px 24px -14px rgba(34,31,27,.18);
     --card-shadow-hover: 0 1px 2px rgba(34,31,27,.05), 0 16px 32px -14px rgba(34,31,27,.24);
     --cover-shadow: 0 6px 16px -6px rgba(34,31,27,.35), 0 1px 3px rgba(34,31,27,.15);
+
+    /* Theme identity: color palette above, typography + button shadow tint here */
+    --font-body: 'Inter', sans-serif;
+    --font-display: 'Fraunces', serif;
+    --btn-shadow: rgba(123,42,42,.55);
+    --btn-shadow-hover: rgba(123,42,42,.6);
   }
   html.dark {
     --bg: #181714;
@@ -68,14 +74,124 @@
     --cover-shadow: 0 8px 20px -6px rgba(0,0,0,.6), 0 1px 3px rgba(0,0,0,.4);
   }
 
+  /* Theme "Slate": cool neutral grays, indigo accent, geometric display font —
+     minimal and contemporary in place of the default's warm bound-book look. */
+  html.theme-slate {
+    --bg: #F4F4F5;
+    --surface: #FFFFFF;
+    --surface-muted: #E8E8EC;
+    --ink: #18181B;
+    --ink-muted: #71717A;
+    --border: #E4E4E7;
+
+    --accent: #4338CA;
+    --accent-strong: #3730A3;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #E0E7FF;
+    --focus-ring: #4338CA;
+
+    --foliage: #0F766E;
+    --foliage-soft: #CCFBF1;
+
+    --gilt: #B45309;
+    --gilt-light: #FDE68A;
+
+    --card-shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 24px -14px rgba(0,0,0,.12);
+    --card-shadow-hover: 0 1px 2px rgba(0,0,0,.05), 0 16px 32px -14px rgba(0,0,0,.16);
+    --cover-shadow: 0 6px 16px -6px rgba(0,0,0,.25), 0 1px 3px rgba(0,0,0,.12);
+
+    --font-body: 'Inter', sans-serif;
+    --font-display: 'Space Grotesk', sans-serif;
+    --btn-shadow: rgba(67,56,202,.5);
+    --btn-shadow-hover: rgba(67,56,202,.55);
+  }
+  html.theme-slate.dark {
+    --bg: #0B0B0D;
+    --surface: #18181B;
+    --surface-muted: #1F1F23;
+    --ink: #F4F4F5;
+    --ink-muted: #A1A1AA;
+    --border: #2A2A2E;
+
+    --accent: #818CF8;
+    --accent-strong: #A5B4FC;
+    --accent-ink: #18181B;
+    --accent-soft: #26264D;
+
+    --foliage: #2DD4BF;
+    --foliage-soft: #103430;
+
+    --gilt: #FBBF24;
+    --gilt-light: #FDE68A;
+
+    --card-shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 24px -14px rgba(0,0,0,.5);
+    --card-shadow-hover: 0 1px 2px rgba(0,0,0,.35), 0 16px 32px -14px rgba(0,0,0,.6);
+    --cover-shadow: 0 8px 20px -6px rgba(0,0,0,.6), 0 1px 3px rgba(0,0,0,.4);
+  }
+
+  /* Theme "Coral": warm off-white, vivid coral accent, rounded display font —
+     friendlier and more saturated than the default's leather-bound look. */
+  html.theme-coral {
+    --bg: #FBF8F6;
+    --surface: #FFFFFF;
+    --surface-muted: #F3ECE7;
+    --ink: #241C1A;
+    --ink-muted: #8A7A73;
+    --border: #EDE1DA;
+
+    --accent: #E85D3D;
+    --accent-strong: #C8471F;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #FBE4DA;
+    --focus-ring: #E85D3D;
+
+    --foliage: #0E7C7B;
+    --foliage-soft: #D9F0EF;
+
+    --gilt: #D9A441;
+    --gilt-light: #F0D28A;
+
+    --card-shadow: 0 1px 2px rgba(36,28,26,.05), 0 10px 24px -14px rgba(36,28,26,.18);
+    --card-shadow-hover: 0 1px 2px rgba(36,28,26,.06), 0 16px 32px -14px rgba(36,28,26,.24);
+    --cover-shadow: 0 6px 16px -6px rgba(36,28,26,.35), 0 1px 3px rgba(36,28,26,.15);
+
+    --font-body: 'Inter', sans-serif;
+    --font-display: 'Sora', sans-serif;
+    --btn-shadow: rgba(232,93,61,.45);
+    --btn-shadow-hover: rgba(232,93,61,.5);
+  }
+  html.theme-coral.dark {
+    --bg: #1A1210;
+    --surface: #241B18;
+    --surface-muted: #2E2320;
+    --ink: #F5E9E3;
+    --ink-muted: #B29A90;
+    --border: #3A2D28;
+
+    --accent: #F0855F;
+    --accent-strong: #F5A583;
+    --accent-ink: #1A1210;
+    --accent-soft: #3A241C;
+
+    --foliage: #4FD1CB;
+    --foliage-soft: #16302E;
+
+    --gilt: #E8BC61;
+    --gilt-light: #F3D89A;
+
+    --card-shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 24px -14px rgba(0,0,0,.5);
+    --card-shadow-hover: 0 1px 2px rgba(0,0,0,.35), 0 16px 32px -14px rgba(0,0,0,.6);
+    --cover-shadow: 0 8px 20px -6px rgba(0,0,0,.6), 0 1px 3px rgba(0,0,0,.4);
+  }
+
   body {
     background-color: var(--bg);
     color: var(--ink);
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     /* Very subtle paper grain, to avoid a too-flat, too-digital color fill */
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
   }
-  .font-display { font-family: 'Fraunces', serif; }
+  .font-display { font-family: var(--font-display); }
   .font-code { font-family: 'JetBrains Mono', monospace; }
 
   /* "Catalog card" kicker: small marker above page titles */
@@ -149,10 +265,10 @@
   .btn-primary {
     background: linear-gradient(180deg, var(--accent-strong), var(--accent));
     color: var(--accent-ink);
-    box-shadow: 0 1px 2px rgba(0,0,0,.1), 0 6px 16px -8px rgba(123,42,42,.55);
+    box-shadow: 0 1px 2px rgba(0,0,0,.1), 0 6px 16px -8px var(--btn-shadow);
     transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
   }
-  .btn-primary:hover { filter: brightness(1.08); box-shadow: 0 2px 4px rgba(0,0,0,.12), 0 10px 20px -8px rgba(123,42,42,.6); }
+  .btn-primary:hover { filter: brightness(1.08); box-shadow: 0 2px 4px rgba(0,0,0,.12), 0 10px 20px -8px var(--btn-shadow-hover); }
   .btn-primary:active { transform: translateY(1px); }
 
   @media (prefers-reduced-motion: reduce) {
@@ -175,6 +291,19 @@
     margin: 0;
   }
   .number-input-no-spinners { -moz-appearance: textfield; }
+
+  /* Fixed reference colors for the theme picker in Administration > Settings —
+     always shows each option's real palette, regardless of the theme
+     currently active on the page. */
+  .theme-swatch-classic-1 { background: #EDEAE0; }
+  .theme-swatch-classic-2 { background: #7B2A2A; }
+  .theme-swatch-classic-3 { background: #2E4A3A; }
+  .theme-swatch-slate-1 { background: #F4F4F5; }
+  .theme-swatch-slate-2 { background: #4338CA; }
+  .theme-swatch-slate-3 { background: #0F766E; }
+  .theme-swatch-coral-1 { background: #FBF8F6; }
+  .theme-swatch-coral-2 { background: #E85D3D; }
+  .theme-swatch-coral-3 { background: #0E7C7B; }
 </style>
 {% block extra_styles %}{% endblock %}
 </head>

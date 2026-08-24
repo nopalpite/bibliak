@@ -4,6 +4,7 @@ from app.services import settings_service
 def test_get_setting_returns_default_value_when_unset(app, db):
     assert settings_service.get_setting("language") == "en"
     assert settings_service.get_setting("default_view") == "grid"
+    assert settings_service.get_setting("theme") == "classic"
 
 
 def test_get_setting_unknown_key_returns_explicit_default(app, db):

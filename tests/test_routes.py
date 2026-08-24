@@ -230,6 +230,26 @@ def test_admin_language_setting_changes_rendered_text(client, db):
     assert "Aucun ouvrage ne correspond".encode() in response.data
 
 
+def test_index_page_uses_classic_theme_by_default(client, db):
+    response = client.get("/")
+    assert 'class="scroll-smooth theme-classic"' in response.get_data(as_text=True)
+
+
+def test_admin_theme_setting_changes_the_rendered_theme_class(client, db):
+    client.post(
+        "/admin/settings",
+        data={
+            "language": "en",
+            "default_view": "grid",
+            "duplicate_detection": "isbn_and_title",
+            "theme": "slate",
+        },
+    )
+
+    response = client.get("/")
+    assert 'class="scroll-smooth theme-slate"' in response.get_data(as_text=True)
+
+
 def test_export_json_contains_created_book(client, db):
     client.post("/books/new", data={"title": "Export moi", "item_type": "BD"})
 

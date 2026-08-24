@@ -31,6 +31,8 @@ def _settings_context():
         "duplicate_detection_choices": settings_service.DUPLICATE_DETECTION_CHOICES,
         "language": settings_service.get_setting("language"),
         "available_languages": i18n_service.available_languages(),
+        "theme": settings_service.get_setting("theme"),
+        "theme_choices": settings_service.THEME_CHOICES,
     }
 
 
@@ -78,6 +80,7 @@ def save_settings():
     settings_service.set_setting("default_view", request.form.get("default_view"))
     settings_service.set_setting("duplicate_detection", request.form.get("duplicate_detection"))
     settings_service.set_setting("language", request.form.get("language"))
+    settings_service.set_setting("theme", request.form.get("theme"))
     return render_template("admin/settings.html", **_settings_context())
 
 

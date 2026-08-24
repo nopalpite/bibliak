@@ -39,9 +39,11 @@ def create_app(config_class=Config):
         from .services.settings_service import get_setting
         try:
             global_default_view = get_setting("default_view", "grid")
+            global_theme = get_setting("theme", "classic")
         except Exception:
             global_default_view = "grid"
-        return {"global_default_view": global_default_view}
+            global_theme = "classic"
+        return {"global_default_view": global_default_view, "global_theme": global_theme}
 
     @app.cli.command("init-db")
     def init_db():

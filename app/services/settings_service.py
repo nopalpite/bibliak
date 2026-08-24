@@ -19,6 +19,8 @@ DEFAULT_VALUES = {
     # Duplicate detection policy, applied uniformly wherever a book is
     # created (manual add, scan, import) — see book_service.find_duplicate
     "duplicate_detection": "isbn_and_title",
+    # UI color/typography theme — see the html.theme-* blocks in layout.html
+    "theme": "classic",
 }
 
 # Possible choices for "duplicate_detection", used by the administration page
@@ -26,6 +28,13 @@ DUPLICATE_DETECTION_CHOICES = [
     ("isbn_and_title", "ISBN, then title + volume if the ISBN is missing (recommended)"),
     ("isbn_only", "ISBN only"),
     ("disabled", "Disabled"),
+]
+
+# Possible choices for "theme", used by the administration page
+THEME_CHOICES = [
+    ("classic", "Classic"),
+    ("slate", "Slate"),
+    ("coral", "Coral"),
 ]
 
 
