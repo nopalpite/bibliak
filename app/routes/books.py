@@ -126,6 +126,52 @@ def quick_create_publisher():
     )
 
 
+@books_bp.route("/tags/quick-create", methods=["POST"])
+def quick_create_tag():
+    """Creates a tag from the add/edit form (the "+" button next to the
+    tags selector), without leaving the page. The newly created tag is
+    added to the tags already selected in the returned field (passed
+    through as a comma-separated "selected" field, mirroring the "tags"
+    hidden field the form itself submits)."""
+    name = request.form.get("name", "").strip()
+    selected = [t for t in request.form.get("selected", "").split(",") if t.strip()]
+
+    if not name:
+        return render_template(
+            "partials/field_tags.html",
+            existing_tags=Tag.query.order_by(Tag.label).all(),
+            values={"tags_list": selected},
+            message=t('Please enter a tag name.'),
+            error=True,
+            entered_name="",
+        )
+
+    tag = Tag.query.filter_by(label=name).first()
+    already_existing = tag is not None
+    if not tag:
+        tag = Tag(label=name)
+        db.session.add(tag)
+        db.session.commit()
+
+    if tag.label not in selected:
+        selected.append(tag.label)
+
+    message = (
+        t('"{name}" already existed: added.', name=tag.label)
+        if already_existing
+        else t('"{name}" created and added.', name=tag.label)
+    )
+
+    return render_template(
+        "partials/field_tags.html",
+        existing_tags=Tag.query.order_by(Tag.label).all(),
+        values={"tags_list": selected},
+        message=message,
+        error=False,
+        entered_name="",
+    )
+
+
 @books_bp.route("/new", methods=["GET", "POST"])
 def new():
     if request.method == "POST":
@@ -335,7 +381,7 @@ def _empty_values():
     return {
         "title": "", "item_type": "", "isbn": "", "series_id": None, "volume": "",
         "authors": "", "publisher_id": None, "publication_date": "", "summary": "",
-        "condition": "", "location": "", "tags": "", "personal_notes": "",
+        "condition": "", "location": "", "tags": "", "tags_list": [], "personal_notes": "",
         "image_url": None, "remote_image_url": None,
     }
 
@@ -354,6 +400,7 @@ def _values_from_book(book):
         "condition": book.condition or "",
         "location": book.location.label if book.location else "",
         "tags": ", ".join(book.tag_list),
+        "tags_list": book.tag_list,
         "personal_notes": book.personal_notes or "",
         "image_url": url_for("static", filename="covers/" + book.cover_image) if book.cover_image else None,
         "remote_image_url": None,
@@ -374,6 +421,7 @@ def _values_from_prefill(prefill):
         "condition": "",
         "location": "",
         "tags": "",
+        "tags_list": [],
         "personal_notes": "",
         "image_url": prefill.get("image_url"),
         "remote_image_url": prefill.get("image_url"),
@@ -411,6 +459,7 @@ def _values_from_form(form):
         "condition": form.get("condition", ""),
         "location": form.get("location", ""),
         "tags": form.get("tags", ""),
+        "tags_list": [t for t in form.get("tags", "").split(",") if t.strip()],
         "personal_notes": form.get("personal_notes", ""),
         "image_url": form.get("remote_image_url") or None,
         "remote_image_url": form.get("remote_image_url") or None,

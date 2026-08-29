@@ -186,6 +186,40 @@ def test_quick_create_series_route(client, db):
     assert "Blacksad".encode() in response.data
 
 
+def test_quick_create_tag_route(client, db):
+    response = client.post("/books/tags/quick-create", data={"name": "favoris"})
+    assert response.status_code == 200
+    assert b"favoris" in response.data
+    assert Tag.query.filter_by(label="favoris").first() is not None
+
+
+def test_quick_create_tag_keeps_already_selected_tags(client, db):
+    """The "+" button must not lose tags already picked from the dropdown
+    before the new one is created — the form sends them via "selected"."""
+    response = client.post(
+        "/books/tags/quick-create", data={"name": "new-tag", "selected": "existing-tag"}
+    )
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'value="existing-tag,new-tag"' in html
+
+
+def test_quick_create_tag_reuses_an_existing_tag_instead_of_duplicating(client, db):
+    client.post("/books/tags/quick-create", data={"name": "favoris"})
+    response = client.post("/books/tags/quick-create", data={"name": "favoris"})
+    assert response.status_code == 200
+    assert Tag.query.filter_by(label="favoris").count() == 1
+
+
+def test_book_form_offers_a_tags_dropdown_with_existing_tags(client, db):
+    db.session.add(Tag(label="humour"))
+    db.session.commit()
+
+    html = client.get("/books/new").get_data(as_text=True)
+    assert 'id="tags-select"' in html
+    assert '<option value="humour">humour</option>' in html
+
+
 def test_stats_page_loads_with_empty_collection(client, db):
     response = client.get("/stats")
     assert response.status_code == 200

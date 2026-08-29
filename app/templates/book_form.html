@@ -179,14 +179,7 @@
       </div>
 
       <div>
-        <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Tags — comma-separated') }}</label>
-        <input type="text" name="tags" list="tags-list"
-               value="{{ values.tags }}"
-               placeholder="{{ t('e.g. funny, to re-read, lent to Paul') }}"
-               class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-        <datalist id="tags-list">
-          {% for tag in existing_tags %}<option value="{{ tag.label }}">{% endfor %}
-        </datalist>
+        {% include "partials/field_tags.html" %}
       </div>
 
       <div>
@@ -219,6 +212,8 @@
     create: {{ t('Create')|tojson }},
     seriesCreateFailed: {{ t('Could not create the series: check your connection and try again.')|tojson }},
     publisherCreateFailed: {{ t('Could not create the publisher: check your connection and try again.')|tojson }},
+    tagCreateFailed: {{ t('Could not create the tag: check your connection and try again.')|tojson }},
+    removeTag: {{ t('Remove {tag}')|tojson }},
   };
 
   function previewPhoto(event) {
@@ -261,6 +256,11 @@
   function showCreatePublisher() {
     document.getElementById('publisher-creation').classList.remove('hidden');
     document.getElementById('new-publisher-name').focus();
+  }
+
+  function showCreateTag() {
+    document.getElementById('tags-creation').classList.remove('hidden');
+    document.getElementById('new-tag-name').focus();
   }
 
   // Deliberately using plain fetch() rather than HTMX: this button lives
@@ -343,18 +343,113 @@
     }
   }
 
+  let tagCreationInProgress = false;
+
+  async function quickCreateTag() {
+    if (tagCreationInProgress) return;
+    tagCreationInProgress = true;
+
+    const nameField = document.getElementById('new-tag-name');
+    const button = document.getElementById('create-tag-button');
+    const name = nameField ? nameField.value : '';
+
+    if (button) { button.disabled = true; button.textContent = FORM_I18N.creating; }
+
+    try {
+      const response = await fetch("{{ url_for('books.quick_create_tag') }}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'name=' + encodeURIComponent(name) + '&selected=' + encodeURIComponent(currentTags().join(',')),
+      });
+      if (!response.ok) {
+        throw new Error('HTTP response ' + response.status);
+      }
+      const html = await response.text();
+      const container = document.getElementById('tags-field-container');
+      if (container) {
+        container.outerHTML = html;
+        renderTagChips(currentTags());
+      }
+    } catch (error) {
+      if (button) { button.disabled = false; button.textContent = FORM_I18N.create; }
+      alert(FORM_I18N.tagCreateFailed);
+    } finally {
+      tagCreationInProgress = false;
+    }
+  }
+
+  // --- Tags: dropdown-picked, multi-value, rendered as removable chips.
+  // Chips are built with the DOM API (not string/innerHTML concatenation):
+  // a tag label can contain quotes or apostrophes, which would otherwise
+  // break out of an inline onclick="..." attribute — see
+  // tests/test_template_safety.py for the same pitfall server-side.
+  function currentTags() {
+    const field = document.getElementById('tags-hidden-field');
+    return field && field.value ? field.value.split(',') : [];
+  }
+
+  function setTags(tags) {
+    document.getElementById('tags-hidden-field').value = tags.join(',');
+    renderTagChips(tags);
+  }
+
+  function renderTagChips(tags) {
+    const container = document.getElementById('tags-chips');
+    if (!container) return;
+    container.className = 'flex flex-wrap gap-1.5' + (tags.length ? ' mt-2' : '');
+    container.innerHTML = '';
+    tags.forEach((label) => {
+      const chip = document.createElement('span');
+      chip.className = 'tag-chip inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full text-xs';
+      chip.style.background = 'var(--accent-soft)';
+      chip.style.color = 'var(--accent)';
+      chip.append(label + ' ');
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'leading-none w-4 h-4 inline-flex items-center justify-center rounded-full hover:bg-black/10';
+      button.textContent = '×';
+      button.setAttribute('aria-label', FORM_I18N.removeTag.replace('{tag}', label));
+      button.addEventListener('click', () => removeTag(label));
+      chip.appendChild(button);
+
+      container.appendChild(chip);
+    });
+  }
+
+  function addSelectedTag() {
+    const select = document.getElementById('tags-select');
+    const label = select.value;
+    select.value = '';
+    if (!label) return;
+    const tags = currentTags();
+    if (!tags.includes(label)) {
+      tags.push(label);
+      setTags(tags);
+    }
+  }
+
+  function removeTag(label) {
+    setTags(currentTags().filter((t) => t !== label));
+  }
+
+  renderTagChips(currentTags());
+
   // Event delegation on document rather than inline onclick/ontouchend
   // attributes on the button: the latter is replaced (outerHTML) after each
-  // series creation, a handler attached directly to it would disappear with
-  // it. Delegation from document stays valid no matter how many times the
-  // button is recreated, and "pointerup" unifies touch/mouse more reliably
-  // than "click" alone on mobile (especially when a virtual keyboard was
-  // just open).
+  // series/publisher/tag creation, a handler attached directly to it would
+  // disappear with it. Delegation from document stays valid no matter how
+  // many times the button is recreated, and "pointerup" unifies touch/mouse
+  // more reliably than "click" alone on mobile (especially when a virtual
+  // keyboard was just open).
   function isCreateSeriesButton(event) {
     return event.target && event.target.closest && event.target.closest('#create-series-button');
   }
   function isCreatePublisherButton(event) {
     return event.target && event.target.closest && event.target.closest('#create-publisher-button');
+  }
+  function isCreateTagButton(event) {
+    return event.target && event.target.closest && event.target.closest('#create-tag-button');
   }
   document.addEventListener('pointerup', function (event) {
     if (isCreateSeriesButton(event)) {
@@ -363,6 +458,9 @@
     } else if (isCreatePublisherButton(event)) {
       event.preventDefault();
       quickCreatePublisher();
+    } else if (isCreateTagButton(event)) {
+      event.preventDefault();
+      quickCreateTag();
     }
   });
   document.addEventListener('click', function (event) {
@@ -370,6 +468,8 @@
       quickCreateSeries();
     } else if (isCreatePublisherButton(event)) {
       quickCreatePublisher();
+    } else if (isCreateTagButton(event)) {
+      quickCreateTag();
     }
   });
 

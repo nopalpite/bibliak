@@ -1,0 +1,40 @@
+<div id="tags-field-container">
+  <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Tags') }}</label>
+  <div class="flex gap-2">
+    <select id="tags-select" onchange="addSelectedTag()" class="flex-1 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+      <option value="">{{ t('Add a tag…') }}</option>
+      {% for tag in existing_tags %}
+      <option value="{{ tag.label }}">{{ tag.label }}</option>
+      {% endfor %}
+    </select>
+    <button type="button" onclick="showCreateTag()"
+            class="px-3 py-2 rounded-lg border text-sm flex-shrink-0" style="border-color: var(--border); color: var(--ink-muted);"
+            title="{{ t('Create a new tag') }}">
+      + {{ t('Tag') }}
+    </button>
+  </div>
+
+  {% if message %}
+  <p class="text-xs mt-1.5" style="color: {{ 'var(--accent)' if error else 'var(--foliage)' }};">
+    {{ '⚠️' if error else '✓' }} {{ message }}
+  </p>
+  {% endif %}
+
+  <div id="tags-creation" class="{{ '' if error else 'hidden' }} mt-2 space-y-2">
+    <input
+      type="text" id="new-tag-name" placeholder="{{ t('New tag name') }}"
+      value="{{ entered_name or '' }}"
+      autocomplete="off" autocorrect="off"
+      onkeydown="if (event.key === 'Enter') { event.preventDefault(); quickCreateTag(); }"
+      class="w-full px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+    <button
+      type="button"
+      id="create-tag-button"
+      class="btn-primary w-full px-3 py-2.5 rounded-lg text-sm"
+    >{{ t('Create tag') }}</button>
+    <p class="text-xs" style="color: var(--ink-muted);">{{ t('Tip: the keyboard Enter key also works.') }}</p>
+  </div>
+
+  <div id="tags-chips" class="flex flex-wrap gap-1.5"></div>
+  <input type="hidden" name="tags" id="tags-hidden-field" value="{{ values.tags_list|join(',') }}">
+</div>
