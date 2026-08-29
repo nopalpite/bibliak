@@ -1,4 +1,4 @@
-from app.models import Book
+from app.models import Book, Tag
 from app.services import book_service, settings_service
 
 
@@ -32,7 +32,7 @@ def test_create_book_resolves_related_entities_on_the_fly(app, db):
     assert book.series.name == "XIII"
     assert book.publisher.name == "Dargaud"
     assert {a.full_name for a in book.authors} == {"Jean Van Hamme", "William Vance"}
-    assert {t.label for t in book.tags} == {"SF", "classique"}
+    assert {t.label for t in book.tags} == {"sf", "classique"}  # tags are always stored lowercase
     assert book.location.label == "Salon"
 
 
@@ -145,6 +145,20 @@ def test_bulk_add_tag_blank_label_is_a_noop(app, db):
     book = book_service.create_book(_minimal_data())
     assert book_service.bulk_add_tag([book.id], "") == 0
     assert book.tags == []
+
+
+def test_resolve_tags_is_case_insensitive_and_always_stores_lowercase(app, db):
+    """Regression test: "Test" and "test" used to create two separate tags
+    since Tag.label is a case-sensitive unique column — they must resolve
+    to the same tag, stored lowercase."""
+    first = book_service.create_book(_minimal_data(tags=["Test"]))
+    second = book_service.create_book(_minimal_data(title="Second", tags=["tEST"]))
+
+    assert Tag.query.count() == 1
+    assert Tag.query.first().label == "test"
+    assert first.tags[0].label == "test"
+    assert second.tags[0].label == "test"
+    assert first.tags[0].id == second.tags[0].id
 
 
 def test_find_duplicate_by_isbn_takes_priority_over_title(app, db):

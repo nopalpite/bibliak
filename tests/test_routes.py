@@ -211,6 +211,44 @@ def test_quick_create_tag_reuses_an_existing_tag_instead_of_duplicating(client, 
     assert Tag.query.filter_by(label="favoris").count() == 1
 
 
+def test_quick_create_tag_lowercases_a_new_tag(client, db):
+    response = client.post("/books/tags/quick-create", data={"name": "Test"})
+    assert response.status_code == 200
+    assert Tag.query.filter_by(label="test").first() is not None
+    assert Tag.query.filter_by(label="Test").first() is None
+
+
+def test_quick_create_tag_matches_an_existing_tag_case_insensitively(client, db):
+    db.session.add(Tag(label="test"))
+    db.session.commit()
+
+    response = client.post("/books/tags/quick-create", data={"name": "Test"})
+
+    assert response.status_code == 200
+    assert Tag.query.count() == 1
+    assert b"already existed: added" in response.data
+
+
+def test_admin_add_tag_avoids_a_case_insensitive_duplicate(client, db):
+    client.post("/admin/references/tags/add", data={"value": "Test"})
+    client.post("/admin/references/tags/add", data={"value": "test"})
+
+    assert Tag.query.count() == 1
+    assert Tag.query.first().label == "test"
+
+
+def test_admin_rename_tag_blocked_by_case_insensitive_collision(client, db):
+    db.session.add(Tag(label="test"))
+    other = Tag(label="other")
+    db.session.add(other)
+    db.session.commit()
+    other_id = other.id
+
+    client.post(f"/admin/references/tags/{other_id}/rename", data={"value": "Test"})
+
+    assert db.session.get(Tag, other_id).label == "other"
+
+
 def test_book_form_offers_a_tags_dropdown_with_existing_tags(client, db):
     db.session.add(Tag(label="humour"))
     db.session.commit()

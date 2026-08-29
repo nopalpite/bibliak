@@ -133,7 +133,7 @@ def quick_create_tag():
     added to the tags already selected in the returned field (passed
     through as a comma-separated "selected" field, mirroring the "tags"
     hidden field the form itself submits)."""
-    name = request.form.get("name", "").strip()
+    name = request.form.get("name", "").strip().lower()
     selected = [t for t in request.form.get("selected", "").split(",") if t.strip()]
 
     if not name:
@@ -146,7 +146,9 @@ def quick_create_tag():
             entered_name="",
         )
 
-    tag = Tag.query.filter_by(label=name).first()
+    # Case-insensitive: "Test" is normalized to lowercase, and matched
+    # against any existing tag regardless of how it was originally cased.
+    tag = Tag.query.filter(db.func.lower(Tag.label) == name).first()
     already_existing = tag is not None
     if not tag:
         tag = Tag(label=name)

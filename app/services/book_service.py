@@ -71,13 +71,20 @@ def _resolve_authors(names):
 
 
 def resolve_tags(labels):
-    """Finds or creates each Tag by label. Public: also used directly by
-    the bulk "add tag" action (see bulk_add_tag below)."""
+    """Finds or creates each Tag by label. Case-insensitive and always
+    stored lowercase, so "Test"/"test"/"TEST" resolve to the same tag
+    instead of near-duplicates from inconsistent casing. Public: also used
+    directly by the bulk "add tag" action (see bulk_add_tag below)."""
     result = []
     for label in labels:
-        label = label.strip()
+        label = label.strip().lower()
         if label:
-            result.append(_get_or_create(Tag, label=label))
+            tag = Tag.query.filter(db.func.lower(Tag.label) == label).first()
+            if not tag:
+                tag = Tag(label=label)
+                db.session.add(tag)
+                db.session.flush()
+            result.append(tag)
     return result
 
 

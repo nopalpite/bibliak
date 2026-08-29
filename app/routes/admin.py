@@ -110,12 +110,26 @@ def remove_list_value(key):
 
 # --- Relational reference data: publishers, series, tags, locations ---
 
+def _tag_exists(label, exclude_id=None):
+    """Tags are matched case-insensitively — always stored lowercase, see
+    book_service.resolve_tags."""
+    query = Tag.query.filter(db.func.lower(Tag.label) == label)
+    if exclude_id is not None:
+        query = query.filter(Tag.id != exclude_id)
+    return query.first() is not None
+
+
 @admin_bp.route("/references/<model_name>/add", methods=["POST"])
 def add_reference(model_name):
     if model_name in REFERENCE_MODELS:
         model, field = REFERENCE_MODELS[model_name]
         value = request.form.get("value", "").strip()
-        if value and not model.query.filter_by(**{field: value}).first():
+        if model is Tag:
+            value = value.lower()
+            already_exists = _tag_exists(value)
+        else:
+            already_exists = model.query.filter_by(**{field: value}).first() is not None
+        if value and not already_exists:
             db.session.add(model(**{field: value}))
             db.session.commit()
     return render_template("admin/references.html", **_references_context())
@@ -127,6 +141,10 @@ def rename_reference(model_name, item_id):
         model, field = REFERENCE_MODELS[model_name]
         item = model.query.get_or_404(item_id)
         new_value = request.form.get("value", "").strip()
+        if model is Tag:
+            new_value = new_value.lower()
+            if new_value and _tag_exists(new_value, exclude_id=item_id):
+                new_value = ""  # blocked: would collide case-insensitively with another tag
         if new_value:
             setattr(item, field, new_value)
             db.session.commit()
