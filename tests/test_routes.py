@@ -1,6 +1,7 @@
 import io
 import json
 import re
+from html import unescape
 
 from app.models import Book, Tag
 
@@ -152,6 +153,13 @@ def test_delete_confirm_survives_quotes_and_apostrophes_in_title(client, db):
 
 
 def test_reference_delete_confirm_survives_quotes_and_apostrophes_in_name(client, db):
+    """Regression test: this form uses hx-confirm rather than
+    onsubmit + confirm(), since htmx's own submit handling doesn't reliably
+    respect an onsubmit handler's cancellation on an hx-post form (the
+    delete button would fire even after Cancel/Escape) — see
+    admin/references.html. hx-confirm is a plain HTML attribute, so it only
+    needs normal HTML-attribute escaping to survive quotes and apostrophes
+    in the tag name, not JSON encoding."""
     tricky_label = """Tag O'Brien "Special\""""
     tag = Tag(label=tricky_label)
     db.session.add(tag)
@@ -159,9 +167,9 @@ def test_reference_delete_confirm_survives_quotes_and_apostrophes_in_name(client
 
     html = client.get("/admin/tab/references").get_data(as_text=True)
 
-    match = re.search(r"onsubmit='return confirm\((.*?)\);'", html)
-    assert match, "reference delete form's onsubmit attribute is missing or malformed"
-    message = json.loads(match.group(1))
+    match = re.search(r'hx-confirm="([^"]*)"', html)
+    assert match, "reference delete form's hx-confirm attribute is missing or malformed"
+    message = unescape(match.group(1))
     assert tricky_label in message
 
 
