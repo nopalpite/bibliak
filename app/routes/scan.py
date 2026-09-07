@@ -1,5 +1,6 @@
 from flask import Blueprint, redirect, render_template, request, session, url_for
 
+from app.services import book_service, image_service
 from app.services.i18n_service import t
 from app.services.isbn_service import (
     ISBN_SEARCH_MAX_ATTEMPTS,
@@ -7,6 +8,7 @@ from app.services.isbn_service import (
     attempt_search,
     search_by_title,
 )
+from app.services.settings_service import get_setting
 
 scan_bp = Blueprint("scan", __name__)
 
@@ -15,7 +17,7 @@ scan_bp = Blueprint("scan", __name__)
 def scan_page():
     """Scan page: shows the camera on smartphone (client-side detection),
     and a plain ISBN input field on other platforms."""
-    return render_template("scan.html")
+    return render_template("scan.html", item_types=get_setting("item_types", []))
 
 
 @scan_bp.route("/search", methods=["POST"])
@@ -26,7 +28,16 @@ def search_isbn():
             "partials/scan_result.html", error=t('Please enter an ISBN/EAN code.')
         )
 
-    return _search_step({"isbn": isbn, "attempt": 1})
+    state = {
+        "isbn": isbn,
+        "attempt": 1,
+        # Rafale mode: scan several books in a row, each match added
+        # automatically (with this session's chosen type) instead of
+        # stopping to fill in the full form — see _rafale_outcome below.
+        "rafale": request.form.get("rafale") == "1",
+        "item_type": request.form.get("item_type", ""),
+    }
+    return _search_step(state)
 
 
 @scan_bp.route("/search/retry", methods=["POST"])
@@ -50,6 +61,8 @@ def _search_step(state):
 
     if status == "ok":
         session.pop("isbn_search", None)
+        if state.get("rafale"):
+            return _rafale_outcome(result, state.get("item_type", ""))
         session["prefill_scan"] = result
         return render_template("partials/scan_result.html", result=result)
 
@@ -77,6 +90,64 @@ def _search_step(state):
     return render_template(
         "partials/scan_result.html", error=error, isbn=state["isbn"], error_type=error_type
     )
+
+
+def _rafale_data(title, isbn, authors, publisher, publication_date, item_type):
+    return {
+        "title": title or "",
+        "item_type": item_type or "",
+        "isbn": isbn or None,
+        "publication_date": publication_date or None,
+        "publisher": publisher or None,
+        "authors": authors or [],
+        "tags": [],
+    }
+
+
+def _rafale_create(data, image_url):
+    book = book_service.create_book(data)
+    filename, _error = image_service.download_cover(image_url)
+    book_service.set_cover(book, filename)
+    return book
+
+
+def _rafale_outcome(result, item_type):
+    """A match during rafale scanning is added straight away — unless it
+    looks like a duplicate, which still needs a decision (see
+    rafale_confirm below)."""
+    data = _rafale_data(
+        result.get("title"), result.get("isbn"), result.get("authors"),
+        result.get("publisher"), result.get("publication_date"), item_type,
+    )
+    duplicate, criterion = book_service.find_duplicate(data)
+    if duplicate:
+        return render_template(
+            "partials/scan_rafale_result.html",
+            outcome="duplicate", duplicate=duplicate, criterion=criterion,
+            result=result, item_type=item_type,
+        )
+    book = _rafale_create(data, result.get("image_url"))
+    return render_template("partials/scan_rafale_result.html", outcome="added", book=book)
+
+
+@scan_bp.route("/rafale-confirm", methods=["POST"])
+def rafale_confirm():
+    """Creates the book anyway after a duplicate warning during rafale
+    scanning. The scanned data travels as hidden fields in the warning
+    form itself rather than session state: scanning doesn't pause while a
+    warning is pending, so a later scan could otherwise overwrite it
+    before this one is resolved."""
+    form = request.form
+    data = _rafale_data(
+        form.get("title", ""),
+        form.get("isbn") or None,
+        [a for a in form.get("authors", "").split(",") if a.strip()],
+        form.get("publisher") or None,
+        form.get("publication_date") or None,
+        form.get("item_type", ""),
+    )
+    book = _rafale_create(data, form.get("image_url") or None)
+    return render_template("partials/scan_rafale_result.html", outcome="added", book=book)
 
 
 @scan_bp.route("/search-title", methods=["POST"])

@@ -1,0 +1,42 @@
+{% if outcome == "duplicate" %}
+<div>
+  {% with variant = "live" %}
+  {% include "partials/duplicate_alert.html" %}
+  {% endwith %}
+  <div class="flex gap-2 mt-2">
+    <form hx-post="{{ url_for('scan.rafale_confirm') }}" hx-target="#result-zone">
+      <input type="hidden" name="title" value="{{ result.title or '' }}">
+      <input type="hidden" name="isbn" value="{{ result.isbn or '' }}">
+      <input type="hidden" name="authors" value="{{ (result.authors or [])|join(',') }}">
+      <input type="hidden" name="publisher" value="{{ result.publisher or '' }}">
+      <input type="hidden" name="publication_date" value="{{ result.publication_date or '' }}">
+      <input type="hidden" name="image_url" value="{{ result.image_url or '' }}">
+      <input type="hidden" name="item_type" value="{{ item_type }}">
+      <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border font-medium" style="border-color: var(--accent); color: var(--accent);">
+        {{ t('Add anyway') }}
+      </button>
+    </form>
+    <button type="button" onclick="skipRafaleDuplicate()" class="text-xs px-3 py-1.5 rounded-lg border" style="border-color: var(--border); color: var(--ink-muted);">
+      {{ t('Ignore') }}
+    </button>
+  </div>
+</div>
+
+{% elif outcome == "added" %}
+<div class="rounded-lg border p-3 text-xs flex items-center gap-3" style="background: var(--foliage-soft); color: var(--foliage); border-color: var(--border);">
+  ✓ {{ t('Added: {title}', title=book.title) }}
+  <a href="{{ url_for('books.detail', book_id=book.id) }}" target="_blank" class="underline whitespace-nowrap font-medium">{{ t('Edit') }}</a>
+</div>
+
+<div hx-swap-oob="afterbegin:#rafale-history">
+  <div class="flex items-center gap-3 py-2 border-b text-sm" style="border-color: var(--border);">
+    <div class="w-8 aspect-[2/3] rounded overflow-hidden flex-shrink-0" style="background: var(--surface-muted);">
+      {% if book.cover_image %}
+      <img src="{{ url_for('static', filename='covers/' + book.cover_image) }}" alt="" class="w-full h-full object-cover">
+      {% endif %}
+    </div>
+    <span class="flex-1 truncate">{{ book.title }}</span>
+    <a href="{{ url_for('books.detail', book_id=book.id) }}" target="_blank" class="text-xs underline flex-shrink-0" style="color: var(--ink-muted);">{{ t('Edit') }}</a>
+  </div>
+</div>
+{% endif %}

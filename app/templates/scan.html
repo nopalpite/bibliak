@@ -38,15 +38,37 @@
     <p id="camera-message" class="text-xs" style="color: var(--ink-muted);">{{ t('Frame the barcode on the back of the book.') }}</p>
   </div>
 
+  <!-- Rafale mode: scan several books in a row without stopping at each one -->
+  <div class="card p-5 mb-6">
+    <label class="flex items-center gap-2 text-sm font-medium cursor-pointer">
+      <input type="checkbox" id="rafale-toggle" onchange="onRafaleToggle()">
+      {{ t('Rafale mode (scan several books in a row)') }}
+    </label>
+    <div id="rafale-options" class="hidden mt-3">
+      <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Type for this session') }}</label>
+      <select id="rafale-item-type" onchange="syncRafaleFields()" class="w-full sm:w-64 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+        {% for type_ in item_types %}
+        <option value="{{ type_ }}">{{ type_ }}</option>
+        {% endfor %}
+      </select>
+      <p class="text-xs mt-2" style="color: var(--ink-muted);">
+        {{ t('Each match is added automatically with this type — edit it afterward if needed. A possible duplicate still asks for confirmation.') }}
+      </p>
+    </div>
+  </div>
+
   <!-- Manual ISBN entry: always available (the only option on desktop/tablet, or if the camera doesn't work) -->
   <div class="card p-5">
     <h2 id="manual-entry-title" class="text-sm font-semibold mb-3">{{ t('Enter the ISBN / EAN code') }}</h2>
     <form
+      id="isbn-form"
       hx-post="{{ url_for('scan.search_isbn') }}"
       hx-target="#result-zone"
       hx-indicator="#scan-indicator"
       class="flex gap-2"
     >
+      <input type="hidden" name="rafale" id="rafale-flag" value="0">
+      <input type="hidden" name="item_type" id="rafale-item-type-flag" value="">
       <input id="isbn-field" type="text" name="isbn" inputmode="numeric" placeholder="{{ t('e.g. 9782505004900') }}"
              class="flex-1 px-3 py-2.5 rounded-lg border text-sm bg-transparent font-code" style="border-color: var(--border);">
       <button type="submit" class="btn-primary px-4 py-2.5 rounded-lg text-sm font-medium">
@@ -57,6 +79,7 @@
   </div>
 
   <div id="result-zone" class="mt-6"></div>
+  <div id="rafale-history" class="mt-2"></div>
 </div>
 
 <script>
@@ -88,6 +111,59 @@
   let scannerActive = false;
   let reader = null;
   let autoStartAttempted = false;
+
+  // --- Rafale mode: scan several books in a row without navigating away
+  // or stopping the camera at each one. See app/routes/scan.py for the
+  // server side (search_isbn / _rafale_outcome / rafale_confirm).
+  let rafalePaused = false; // true while a duplicate warning awaits a decision
+  let rafaleCooldownUntil = 0; // ignores repeat decodes of the same barcode for a bit
+
+  function isRafaleMode() {
+    const toggle = el('rafale-toggle');
+    return !!(toggle && toggle.checked);
+  }
+
+  function syncRafaleFields() {
+    const on = isRafaleMode();
+    el('rafale-flag').value = on ? '1' : '0';
+    const typeSelect = el('rafale-item-type');
+    el('rafale-item-type-flag').value = (on && typeSelect) ? typeSelect.value : '';
+  }
+
+  function onRafaleToggle() {
+    const on = isRafaleMode();
+    el('rafale-options').classList.toggle('hidden', !on);
+    if (!on) {
+      rafalePaused = false;
+    }
+    syncRafaleFields();
+  }
+
+  function skipRafaleDuplicate() {
+    const zone = el('result-zone');
+    if (zone) zone.innerHTML = '';
+    rafalePaused = false;
+    const field = el('isbn-field');
+    if (field) { field.value = ''; field.focus(); }
+  }
+
+  // Every rafale outcome (added, duplicate, not found...) swaps
+  // #result-zone: refocus the field for the next manual/USB-scanner-gun
+  // entry, and only resume the camera automatically when nothing needs a
+  // decision first (a pending duplicate has its own form posting to
+  // rafale-confirm — its presence is what "still needs a decision" means
+  // here).
+  document.body.addEventListener('htmx:afterSwap', function (evt) {
+    if (!evt.detail.target || evt.detail.target.id !== 'result-zone' || !isRafaleMode()) return;
+
+    const field = el('isbn-field');
+    if (field) { field.value = ''; field.focus(); }
+
+    rafalePaused = !!evt.detail.target.querySelector('form[hx-post*="rafale-confirm"]');
+    if (!rafalePaused) {
+      rafaleCooldownUntil = Date.now() + 800;
+    }
+  });
 
   function el(id) {
     return document.getElementById(id);
@@ -133,6 +209,20 @@
       },
       (decodedText) => {
         const field = el('isbn-field');
+
+        if (isRafaleMode()) {
+          // Keep the camera running: ignore this decode if a duplicate from
+          // an earlier scan is still awaiting a decision, or if we're still
+          // in the brief cooldown after the last accepted scan (the same
+          // book is very likely still in frame).
+          if (rafalePaused || Date.now() < rafaleCooldownUntil) return;
+          rafaleCooldownUntil = Date.now() + 4000; // covers the round trip; htmx:afterSwap sets the real value once it lands
+          if (field) field.value = decodedText;
+          const form = field ? field.closest('form') : null;
+          if (form) htmx.trigger(form, 'submit');
+          return;
+        }
+
         if (field) field.value = decodedText;
         stopScanner();
         scannerActive = false;

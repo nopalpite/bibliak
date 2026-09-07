@@ -1,3 +1,4 @@
+from app.models import Book
 from app.services import isbn_service
 
 
@@ -67,6 +68,64 @@ def test_search_succeeds_on_first_try(client, db, monkeypatch):
     response = client.post("/scan/search", data={"isbn": "9782505004900"})
     assert response.status_code == 200
     assert "XIII".encode() in response.data
+
+
+def test_scan_page_offers_a_rafale_item_type_selector(client, db):
+    html = client.get("/scan/").get_data(as_text=True)
+    assert 'id="rafale-item-type"' in html
+    assert "<option value=\"BD\">BD</option>" in html
+
+
+def test_rafale_scan_creates_the_book_automatically(client, db, monkeypatch):
+    _patch_attempt_search(monkeypatch, [
+        ("ok", {"title": "XIII", "isbn": "9782505004900", "authors": ["Jean Van Hamme"], "source": "Open Library"})
+    ])
+
+    response = client.post(
+        "/scan/search", data={"isbn": "9782505004900", "rafale": "1", "item_type": "BD"}
+    )
+
+    assert response.status_code == 200
+    assert b"Added:" in response.data
+    book = Book.query.filter_by(title="XIII").first()
+    assert book is not None
+    assert book.item_type == "BD"
+    assert {a.full_name for a in book.authors} == {"Jean Van Hamme"}
+
+
+def test_rafale_scan_asks_for_confirmation_instead_of_auto_adding_a_duplicate(client, db, monkeypatch):
+    existing = Book(title="XIII", item_type="BD", isbn="9782505004900")
+    db.session.add(existing)
+    db.session.commit()
+
+    _patch_attempt_search(monkeypatch, [
+        ("ok", {"title": "XIII", "isbn": "9782505004900", "authors": [], "source": "Open Library"})
+    ])
+
+    response = client.post(
+        "/scan/search", data={"isbn": "9782505004900", "rafale": "1", "item_type": "BD"}
+    )
+
+    assert response.status_code == 200
+    assert b"rafale-confirm" in response.data
+    assert Book.query.count() == 1  # not auto-added
+
+
+def test_rafale_confirm_creates_the_book_anyway(client, db):
+    existing = Book(title="XIII", item_type="BD", isbn="9782505004900")
+    db.session.add(existing)
+    db.session.commit()
+
+    response = client.post(
+        "/scan/rafale-confirm",
+        data={
+            "title": "XIII", "isbn": "9782505004900", "authors": "Jean Van Hamme",
+            "publisher": "Dargaud", "publication_date": "1984", "item_type": "BD",
+        },
+    )
+
+    assert response.status_code == 200
+    assert Book.query.filter_by(isbn="9782505004900").count() == 2
 
 
 def test_search_shows_a_retrying_message_then_succeeds_on_the_next_step(client, db, monkeypatch):
