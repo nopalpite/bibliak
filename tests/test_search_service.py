@@ -1,3 +1,4 @@
+from app.models import Series
 from app.services import book_service, search_service
 
 
@@ -81,3 +82,29 @@ def test_group_by_series_separates_books_without_series(app, db):
     assert with_series["series"].name == "XIII"
     assert [b.volume for b in with_series["books"]] == [1, 2]
     assert [b.title for b in without_series["books"]] == ["Standalone"]
+
+
+def test_group_by_series_strip_shows_the_missing_volumes_in_place(app, db):
+    _book(title="T1", series="XIII", volume=1)
+    _book(title="T3", series="XIII", volume=3)
+    db.session.query(Series).filter_by(name="XIII").one().expected_volume_count = 4
+    db.session.commit()
+
+    group = search_service.group_by_series(search_service.search_books())[0]
+
+    assert [(e["volume"], e["book"] is not None) for e in group["strip"]] == [
+        (1, True), (2, False), (3, True), (4, False)
+    ]
+
+
+def test_a_filtered_out_volume_is_not_shown_as_a_gap(app, db):
+    """The shelf view runs on filtered search results: a volume that is
+    simply hidden by the filter is owned, so it must not look missing."""
+    _book(title="T1", series="XIII", volume=1, item_type="BD")
+    _book(title="T2", series="XIII", volume=2, item_type="Manga")
+    db.session.query(Series).filter_by(name="XIII").one().expected_volume_count = 2
+    db.session.commit()
+
+    group = search_service.group_by_series(search_service.search_books(item_type="BD"))[0]
+
+    assert [(e["volume"], e["book"] is not None) for e in group["strip"]] == [(1, True)]

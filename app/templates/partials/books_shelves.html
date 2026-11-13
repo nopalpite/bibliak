@@ -23,27 +23,44 @@
       {% endif %}
     </div>
 
-    <div class="flex gap-3 overflow-x-auto pb-3">
-      {% for b in group.books %}
-      <a href="{{ url_for('books.detail', book_id=b.id) }}" class="flex-shrink-0 w-28 group">
-        <div class="cover aspect-[2/3] rounded-lg overflow-hidden mb-1.5 relative" style="background: var(--surface-muted);">
-          {% if b.read %}
-          <span class="absolute top-1.5 right-1.5 z-10 flex items-center justify-center rounded-full text-[10px] font-semibold w-5 h-5" style="background: var(--foliage); color: var(--surface);" title="{{ t('Read') }}">
-            ✓
-          </span>
-          {% endif %}
+    <!-- The shelf: books standing spine out; hovering one pulls it forward to show its cover -->
+    <div class="shelf-niche">
+      {% for entry in group.strip %}
+      {% if entry.book %}
+      {% set b = entry.book %}
+      {% set w = 30 + (b.id * 7 % 5) * 3 %}
+      {% set h = 168 + (b.id * 13 % 5) * 5 %}
+      <a href="{{ url_for('books.detail', book_id=b.id) }}"
+         class="shelf-book {{ 'spine-' ~ (b.id % 8 + 1) if not group.series }}"
+         style="width: {{ w }}px; height: {{ h }}px;"
+         aria-label="{{ b.title }}" title="{{ b.title }}">
+        <span class="shelf-spine">
+          <span class="shelf-band"></span>
+          <span class="shelf-spine-title">{% if b.volume %}T{{ b.volume }} · {% endif %}{{ b.title }}</span>
+          {% if b.read %}<span class="text-[10px] leading-none mb-1" aria-hidden="true">✓</span>{% endif %}
+          <span class="shelf-band"></span>
+        </span>
+        <span class="shelf-pull" aria-hidden="true">
           {% if b.cover_image %}
-          <img src="{{ url_for('static', filename='covers/' + b.cover_image) }}" alt="{{ t('Cover of {title}', title=b.title) }}" class="w-full h-full object-cover transition-transform group-hover:scale-[1.03]" loading="lazy">
+          <img src="{{ url_for('static', filename='covers/' + b.cover_image) }}" alt="" class="w-full h-full object-cover" loading="lazy">
           {% else %}
           {{ cover_fallback(b) }}
           {% endif %}
-        </div>
-        <p class="text-xs truncate" title="{{ b.title }}">{% if b.volume %}{{ t('Volume {n}', n=b.volume) }}{% else %}{{ b.title }}{% endif %}</p>
+        </span>
       </a>
+      {% else %}
+      <a href="{{ url_for('books.new', series_id=group.series.id, volume=entry.volume) }}"
+         class="shelf-book" style="width: 34px; height: 176px;"
+         title="{{ t('Add volume {n} to the collection', n=entry.volume) }}"
+         aria-label="{{ t('Add volume {n} to the collection', n=entry.volume) }}">
+        <span class="shelf-gap" style="position: absolute; inset: 0;">
+          <span class="text-[11px]" style="writing-mode: vertical-rl;">T{{ entry.volume }} · {{ t('missing') }}</span>
+        </span>
+      </a>
+      {% endif %}
       {% endfor %}
     </div>
-    <!-- The shelf: tinted with the series' spine color -->
-    <div class="h-2 rounded-full -mt-1" style="background: linear-gradient(180deg, var(--spine-base, var(--border)), var(--spine-dark, var(--surface-muted))); box-shadow: 0 1px 2px rgba(34,31,27,.08);"></div>
+    <div class="shelf-plank"></div>
   </section>
   {% endfor %}
 </div>

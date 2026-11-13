@@ -8,7 +8,9 @@ the basic indexes set on the models, is largely sufficient.
 from sqlalchemy import or_
 from sqlalchemy.orm import selectinload
 
+from app.extensions import db
 from app.models import Author, Book, Publisher, Series, Tag
+from app.services.book_service import series_strip
 
 AVAILABLE_SORTS = {
     "title": (Book.title.asc(),),
@@ -89,10 +91,31 @@ def search_books(
     return query.order_by(*order).all()
 
 
+def _missing_volumes_by_series(series_list):
+    """Volume numbers not owned at all, per series whose total is known.
+    Computed from the whole collection, not from the (possibly filtered)
+    search results: a volume hidden by a filter is not a gap."""
+    expected = {s.id: s.expected_volume_count for s in series_list if s.expected_volume_count}
+    if not expected:
+        return {}
+    owned = {}
+    rows = db.session.query(Book.series_id, Book.volume).filter(
+        Book.series_id.in_(expected), Book.volume.isnot(None)
+    )
+    for series_id, volume in rows:
+        owned.setdefault(series_id, set()).add(volume)
+    return {
+        series_id: [n for n in range(1, count + 1) if n not in owned.get(series_id, set())]
+        for series_id, count in expected.items()
+    }
+
+
 def group_by_series(books):
     """Groups a list of books by series for the "shelves" view: each series
-    becomes a group, its volumes sorted by number. Books without a series
-    are gathered in a last, separate group."""
+    becomes a group, its volumes sorted by number, plus a "strip": those
+    books and the missing volumes merged in volume order, so the shelf can
+    show its gaps where they belong. Books without a series are gathered in
+    a last, separate group."""
     by_series = {}
     without_series = []
 
@@ -102,13 +125,24 @@ def group_by_series(books):
         else:
             without_series.append(b)
 
+    sorted_series = sorted(by_series.keys(), key=lambda s: s.name.lower())
+    missing = _missing_volumes_by_series(sorted_series)
+
     groups = []
-    for series in sorted(by_series.keys(), key=lambda s: s.name.lower()):
+    for series in sorted_series:
         volumes = sorted(by_series[series], key=lambda b: (b.volume is None, b.volume or 0))
-        groups.append({"series": series, "books": volumes})
+        groups.append({
+            "series": series,
+            "books": volumes,
+            "strip": series_strip(volumes, missing.get(series.id, [])),
+        })
 
     if without_series:
         without_series.sort(key=lambda b: b.title.lower())
-        groups.append({"series": None, "books": without_series})
+        groups.append({
+            "series": None,
+            "books": without_series,
+            "strip": series_strip(without_series, []),
+        })
 
     return groups

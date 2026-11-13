@@ -341,6 +341,19 @@ def test_detail_page_without_a_series_has_no_series_section(client, db):
     assert "Seul" in html
 
 
+def test_shelves_view_stands_books_on_a_shelf_with_gaps_for_missing_volumes(client, db, series):
+    series.expected_volume_count = 3
+    db.session.commit()
+    client.post("/books/new", data={"title": "T1", "item_type": "BD", "series_id": str(series.id), "volume": "1"})
+    client.post("/books/new", data={"title": "T3", "item_type": "BD", "series_id": str(series.id), "volume": "3"})
+
+    html = client.get("/?view=shelves").get_data(as_text=True)
+
+    assert html.count('class="shelf-book') == 3  # two books + the gap
+    assert 'class="shelf-plank"' in html
+    assert f"series_id={series.id}&amp;volume=2" in html  # the gap links to the pre-filled add form
+
+
 def test_index_page_is_english_by_default(client):
     response = client.get("/")
     assert "No book matches".encode() in response.data
