@@ -39,7 +39,7 @@
     hx-get="{{ url_for('books.search') }}"
     hx-target="#results"
     hx-trigger="input changed delay:400ms, change"
-    hx-indicator="#search-indicator"
+    hx-indicator="#search-indicator, #results"
   >
     <input type="hidden" name="view" value="{{ view }}">
 

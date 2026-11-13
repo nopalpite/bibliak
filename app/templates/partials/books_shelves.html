@@ -1,3 +1,4 @@
+{% from "partials/cover_fallback.html" import cover_fallback %}
 {% if not groups %}
 <div class="text-center py-20 rounded-2xl border border-dashed" style="border-color: var(--border);">
   <svg class="mx-auto mb-4" width="52" height="34" viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ink-muted);">
@@ -34,9 +35,7 @@
           {% if b.cover_image %}
           <img src="{{ url_for('static', filename='covers/' + b.cover_image) }}" alt="{{ t('Cover of {title}', title=b.title) }}" class="w-full h-full object-cover transition-transform group-hover:scale-[1.03]" loading="lazy">
           {% else %}
-          <div class="w-full h-full flex items-center justify-center px-2 text-center">
-            <span class="font-display text-xs" style="color: var(--ink-muted);">{{ b.title }}</span>
-          </div>
+          {{ cover_fallback(b) }}
           {% endif %}
         </div>
         <p class="text-xs truncate" title="{{ b.title }}">{% if b.volume %}{{ t('Volume {n}', n=b.volume) }}{% else %}{{ b.title }}{% endif %}</p>

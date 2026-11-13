@@ -225,7 +225,30 @@
     box-shadow: var(--cover-shadow);
     transition: transform .2s ease, box-shadow .2s ease;
   }
-  .group:hover .cover { transform: translateY(-2px); box-shadow: var(--card-shadow-hover); }
+  .group:hover .cover { transform: translateY(-6px); box-shadow: var(--card-shadow-hover); }
+
+  /* Generated cover for a book without an image (partials/cover_fallback.html):
+     tinted with the series' spine color when it has one. */
+  .gen-cover { background: linear-gradient(150deg, var(--surface) 0%, var(--surface-muted) 100%); }
+  @supports (background: color-mix(in srgb, red 10%, white)) {
+    .gen-cover { background: linear-gradient(150deg, color-mix(in srgb, var(--spine-base, var(--accent)) 16%, var(--surface)) 0%, var(--surface-muted) 100%); }
+  }
+  .gen-cover-title {
+    font-size: .9rem; font-weight: 600; line-height: 1.2; color: var(--ink);
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .gen-cover-sub { font-size: .6875rem; color: var(--ink-muted); }
+
+  /* Cards fade in one after the other when the grid is (re)loaded; --i is
+     the card's rank (capped, so a long collection doesn't wait seconds). */
+  @keyframes card-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .card-in { animation: card-in .35s ease both; animation-delay: calc(min(var(--i, 0), 16) * 30ms); }
+
+  /* While a search is in flight the current results dim and pulse, instead
+     of staying frozen until the new ones land. */
+  @keyframes results-pulse { 50% { opacity: .35; } }
+  #results.htmx-request { opacity: .5; pointer-events: none; transition: opacity .15s; }
+  #results.htmx-request .cover { animation: results-pulse 1s ease-in-out infinite; }
 
   /* The "book spine": the app's visual signature — a bound edge with a hint
      of light, like on the shelf. The base color can be overridden by a
@@ -273,12 +296,16 @@
 
   @media (prefers-reduced-motion: reduce) {
     .cover, .group:hover .cover, .btn-primary { transition: none !important; transform: none !important; }
+    .card-in, #results.htmx-request .cover { animation: none !important; }
   }
 
-  /* Mobile navigation: hidden by default, shown by adding the .open class in plain JS */
-  #nav-drawer, #mobile-overlay { display: none; }
-  #nav-drawer.open, #mobile-overlay.open { display: flex; }
-  #mobile-overlay.open { display: block; }
+  /* Mobile: the bottom tab bar (see below) sits over the page's last
+     ~6rem, so the content keeps that much room, and the toast moves up. */
+  :root { --toast-bottom: 1.5rem; }
+  @media (max-width: 1023px) {
+    main { padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)) !important; }
+    :root { --toast-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
+  }
 
   .icon-dark, .icon-light { display: none; }
   html:not(.dark) .icon-light { display: inline-flex; }
@@ -311,9 +338,6 @@
 
   <!-- Mobile header -->
   <header class="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b" style="background: var(--surface); border-color: var(--border);">
-    <button type="button" onclick="openMobileMenu()" aria-label="{{ t('Open menu') }}" class="p-2 -ml-2 rounded-lg" style="color: var(--ink);">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-    </button>
     <a href="{{ url_for('main.index') }}" class="flex items-center gap-2">
       <span class="book-spine h-6"></span>
       <span class="font-display text-lg font-medium">BIBLIAK</span>
@@ -323,9 +347,6 @@
       <span class="icon-dark"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 1020.354 15.354z"/></svg></span>
     </button>
   </header>
-
-  <!-- Mobile overlay -->
-  <div id="mobile-overlay" onclick="closeMobileMenu()" class="fixed inset-0 bg-black/40 z-40 lg:hidden"></div>
 
   {% macro nav_content() %}
   <nav class="flex-1 px-4 space-y-1 text-sm">
@@ -385,29 +406,45 @@
       {{ nav_content() }}
     </aside>
 
-    <!-- Mobile navigation drawer: shown/hidden via plain JavaScript (.open class), never shown >= lg -->
-    <aside
-      id="nav-drawer"
-      class="lg:hidden flex-col fixed top-0 left-0 h-screen w-72 z-50 border-r"
-      style="background: var(--surface); border-color: var(--border);"
-    >
-      <div class="flex items-center justify-between px-6 py-6">
-        <a href="{{ url_for('main.index') }}" class="flex items-center gap-3">
-          <span class="book-spine h-8"></span>
-          <span class="font-display text-xl font-medium leading-tight">BIBLIAK</span>
-        </a>
-        <button type="button" onclick="closeMobileMenu()" class="p-1" style="color: var(--ink-muted);" aria-label="{{ t('Close menu') }}">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-        </button>
-      </div>
-      {{ nav_content() }}
-    </aside>
-
     <!-- Main content -->
     <main class="flex-1 min-w-0 px-4 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
       {% block content %}{% endblock %}
     </main>
   </div>
+
+  <!-- Mobile bottom tab bar: the app's main destinations within thumb's reach,
+       with the scanner (the main thing done on a phone) as the raised centre
+       button. Hidden >= lg, where the side navigation takes over. -->
+  <nav class="lg:hidden fixed bottom-0 inset-x-0 z-30 grid grid-cols-5 items-end border-t"
+       style="background: var(--surface); border-color: var(--border); padding-bottom: env(safe-area-inset-bottom);"
+       aria-label="{{ t('Main navigation') }}">
+    <a href="{{ url_for('main.index') }}" class="flex flex-col items-center justify-center gap-1 h-16 text-[11px] font-medium"
+       style="color: {{ 'var(--accent)' if request.endpoint == 'main.index' else 'var(--ink-muted)' }};">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/></svg>
+      {{ t('Collection') }}
+    </a>
+    <a href="{{ url_for('main.stats') }}" class="flex flex-col items-center justify-center gap-1 h-16 text-[11px] font-medium"
+       style="color: {{ 'var(--accent)' if request.endpoint == 'main.stats' else 'var(--ink-muted)' }};">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V10M10 20V4M17 20v-7"/></svg>
+      {{ t('Stats') }}
+    </a>
+    <a href="{{ url_for('scan.scan_page') }}" aria-label="{{ t('Scan a barcode') }}" class="flex justify-center">
+      <span class="btn-primary flex items-center justify-center w-14 h-14 -mt-5 mb-2 rounded-full"
+            style="{{ 'outline: 3px solid var(--accent-soft);' if request.blueprint == 'scan' }}">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V5a1 1 0 011-1h2M20 7V5a1 1 0 00-1-1h-2M4 17v2a1 1 0 001 1h2M20 17v2a1 1 0 01-1 1h-2M4 12h16"/></svg>
+      </span>
+    </a>
+    <a href="{{ url_for('books.new') }}" class="flex flex-col items-center justify-center gap-1 h-16 text-[11px] font-medium"
+       style="color: {{ 'var(--accent)' if request.endpoint == 'books.new' else 'var(--ink-muted)' }};">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      {{ t('Add') }}
+    </a>
+    <a href="{{ url_for('admin.home') }}" class="flex flex-col items-center justify-center gap-1 h-16 text-[11px] font-medium"
+       style="color: {{ 'var(--accent)' if request.blueprint == 'admin' else 'var(--ink-muted)' }};">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1.04 1.56V21a2 2 0 11-4 0v-.09A1.7 1.7 0 009 19.35a1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.65 15a1.7 1.7 0 00-1.56-1.04H3a2 2 0 110-4h.09A1.7 1.7 0 004.65 9a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 009 4.65a1.7 1.7 0 001.04-1.56V3a2 2 0 114 0v.09a1.7 1.7 0 001.04 1.56 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.35 9c.74.146 1.28.795 1.56 1.04H21a2 2 0 110 4h-.09a1.7 1.7 0 00-1.51.96z"/></svg>
+      {{ t('Admin') }}
+    </a>
+  </nav>
 
 <script>
   // Strings rendered server-side once, reused by the plain-JS below: t()
@@ -419,19 +456,6 @@
     requestError: {{ t('An error occurred ({status}). Try again.')|tojson }},
     serverUnreachable: {{ t('Could not reach the server. Check your connection.')|tojson }},
   };
-
-  // --- Mobile menu (plain JavaScript, no library dependency) ---
-  function openMobileMenu() {
-    document.getElementById('nav-drawer').classList.add('open');
-    document.getElementById('mobile-overlay').classList.add('open');
-  }
-  function closeMobileMenu() {
-    document.getElementById('nav-drawer').classList.remove('open');
-    document.getElementById('mobile-overlay').classList.remove('open');
-  }
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeMobileMenu();
-  });
 
   // --- Dark / light mode (plain JavaScript) ---
   function applyTheme(dark) {
@@ -473,7 +497,7 @@
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'htmx-error-toast';
-      toast.style.cssText = 'position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%);z-index:100;padding:.75rem 1.25rem;border-radius:.75rem;font-size:.8125rem;box-shadow:var(--card-shadow-hover);background:var(--surface);color:var(--ink);border:1px solid var(--border);max-width:90vw;text-align:center;';
+      toast.style.cssText = 'position:fixed;left:50%;bottom:var(--toast-bottom);transform:translateX(-50%);z-index:100;padding:.75rem 1.25rem;border-radius:.75rem;font-size:.8125rem;box-shadow:var(--card-shadow-hover);background:var(--surface);color:var(--ink);border:1px solid var(--border);max-width:90vw;text-align:center;';
       document.body.appendChild(toast);
     }
     toast.textContent = text;

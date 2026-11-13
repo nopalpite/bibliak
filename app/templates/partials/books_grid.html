@@ -1,3 +1,4 @@
+{% from "partials/cover_fallback.html" import cover_fallback %}
 {% if not books %}
 <div class="text-center py-20 rounded-2xl border border-dashed" style="border-color: var(--border);">
   <svg class="mx-auto mb-4" width="52" height="34" viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ink-muted);">
@@ -9,7 +10,7 @@
 {% else %}
 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-5">
   {% for b in books %}
-  <div class="relative">
+  <div class="relative card-in" style="--i: {{ loop.index0 }};">
     <input type="checkbox" form="bulk-actions-form" name="book_ids" value="{{ b.id }}" onchange="updateBulkToolbar()"
            class="absolute top-2 left-2 z-20 w-4 h-4 cursor-pointer" aria-label="{{ t('Select {title}', title=b.title) }}">
     <a href="{{ url_for('books.detail', book_id=b.id) }}" class="group flex gap-2">
@@ -24,9 +25,7 @@
         {% if b.cover_image %}
         <img src="{{ url_for('static', filename='covers/' + b.cover_image) }}" alt="{{ t('Cover of {title}', title=b.title) }}" class="w-full h-full object-cover transition-transform group-hover:scale-[1.03]" loading="lazy">
         {% else %}
-        <div class="w-full h-full flex items-center justify-center px-3 text-center">
-          <span class="font-display text-sm" style="color: var(--ink-muted);">{{ b.title }}</span>
-        </div>
+        {{ cover_fallback(b) }}
         {% endif %}
       </div>
       <p class="text-sm font-medium leading-snug truncate" title="{{ b.title }}">{{ b.title }}</p>

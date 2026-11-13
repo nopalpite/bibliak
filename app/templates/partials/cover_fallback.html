@@ -1,0 +1,16 @@
+{#- A generated cover for a book without an image: tinted with its series' spine
+    color, title and series/volume set like a real cover. Fills its parent,
+    which must be `relative` and `overflow-hidden`. `spine` draws the bound
+    edge inside the cover — leave it off where the page already draws a
+    spine next to the cover (the detail page). -#}
+{% macro cover_fallback(b, spine=True) %}
+<div class="gen-cover absolute inset-0 flex {{ b.series.spine_color_class if b.series }}">
+  {% if spine %}<span class="book-spine self-stretch" style="width: 10px; border-radius: 0;"></span>{% endif %}
+  <div class="flex-1 min-w-0 flex flex-col items-center justify-center gap-1.5 px-3 text-center">
+    <span class="gen-cover-title font-display">{{ b.title }}</span>
+    {% if b.series %}
+    <span class="gen-cover-sub">{{ b.series.name }}{% if b.volume %} · T{{ b.volume }}{% endif %}</span>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}

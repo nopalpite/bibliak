@@ -3,6 +3,7 @@
 {% block title %}{{ book.title }} — BIBLIAK{% endblock %}
 
 {% block content %}
+{% from "partials/cover_fallback.html" import cover_fallback %}
 <div class="max-w-4xl mx-auto">
   <a href="{{ url_for('main.index') }}" class="inline-flex items-center gap-1.5 text-sm mb-6" style="color: var(--ink-muted);">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -17,14 +18,12 @@
 
   <div class="grid sm:grid-cols-[220px_1fr] gap-8">
     <div class="flex gap-3">
-      <span class="book-spine self-stretch"></span>
-      <div class="cover flex-1 aspect-[2/3] rounded-xl overflow-hidden" style="background: var(--surface-muted);">
+      <span class="book-spine self-stretch {{ book.series.spine_color_class if book.series }}"></span>
+      <div class="cover relative flex-1 aspect-[2/3] rounded-xl overflow-hidden" style="background: var(--surface-muted);">
         {% if book.cover_image %}
         <img src="{{ url_for('static', filename='covers/' + book.cover_image) }}" alt="{{ t('Cover of {title}', title=book.title) }}" class="w-full h-full object-cover">
         {% else %}
-        <div class="w-full h-full flex items-center justify-center px-4 text-center">
-          <span class="font-display" style="color: var(--ink-muted);">{{ book.title }}</span>
-        </div>
+        {{ cover_fallback(book, spine=False) }}
         {% endif %}
       </div>
     </div>

@@ -3,7 +3,7 @@ import json
 import re
 from html import unescape
 
-from app.models import Book, Tag
+from app.models import Book, Series, Tag
 
 
 def test_index_page_loads(client):
@@ -289,6 +289,29 @@ def test_admin_home_and_tabs_load(client):
     assert client.get("/admin/tab/settings").status_code == 200
     assert client.get("/admin/tab/references").status_code == 200
     assert client.get("/admin/tab/export_import").status_code == 200
+
+
+def test_grid_shows_a_generated_cover_for_a_book_without_an_image(client, db):
+    client.post("/books/new", data={"title": "Sans couverture", "item_type": "BD"})
+    html = client.get("/").get_data(as_text=True)
+    assert 'class="gen-cover' in html
+    assert "Sans couverture" in html
+
+
+def test_generated_cover_is_tinted_with_the_series_spine_color(client, db):
+    series_id = client.post("/books/series/quick-create", data={"name": "Blacksad"}).get_data(as_text=True)
+    series = Series.query.filter_by(name="Blacksad").first()
+    client.post("/books/new", data={"title": "T1", "item_type": "BD", "series_id": str(series.id), "volume": "1"})
+    html = client.get("/").get_data(as_text=True)
+    assert f"gen-cover absolute inset-0 flex {series.spine_color_class}" in html
+    assert series_id  # quick-create answered
+
+
+def test_mobile_bottom_navigation_replaces_the_burger_menu(client):
+    html = client.get("/").get_data(as_text=True)
+    assert 'aria-label="Main navigation"' in html
+    assert "nav-drawer" not in html
+    assert "openMobileMenu" not in html
 
 
 def test_index_page_is_english_by_default(client):
