@@ -43,6 +43,7 @@ def search_books(
     condition=None,
     read_status=None,
     sort="title",
+    limit=None,
 ):
     query = Book.query.options(
         selectinload(Book.authors),
@@ -88,7 +89,10 @@ def search_books(
         query = query.filter(Book.read.is_(True))
 
     order = AVAILABLE_SORTS.get(sort, AVAILABLE_SORTS["title"])
-    return query.order_by(*order).all()
+    query = query.order_by(*order)
+    if limit:
+        query = query.limit(limit)
+    return query.all()
 
 
 def _missing_volumes_by_series(series_list):

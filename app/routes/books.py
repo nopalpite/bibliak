@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, render_template, request, session, url_for
+from flask import Blueprint, jsonify, redirect, render_template, request, session, url_for
 
 from app.extensions import db
 from app.models import Author, Book, Location, Publisher, Series, Tag
@@ -29,6 +29,38 @@ def search():
         return render_template("partials/books_shelves.html", groups=group_by_series(books))
     template = "partials/books_grid.html" if view == "grid" else "partials/books_list.html"
     return render_template(template, books=books)
+
+
+# How many books the command palette (Ctrl+K) lists: matches for a query,
+# or the latest additions when it is empty.
+QUICK_SEARCH_LIMIT = 8
+QUICK_SEARCH_RECENT_LIMIT = 6
+
+
+@books_bp.route("/quick-search")
+def quick_search():
+    """JSON feed for the command palette: a few matching books (the same
+    search as the collection page), or the most recently added ones when no
+    query is typed."""
+    q = (request.args.get("q") or "").strip()
+    if q:
+        books = search_books(q=q, limit=QUICK_SEARCH_LIMIT)
+    else:
+        books = search_books(sort="date_added_desc", limit=QUICK_SEARCH_RECENT_LIMIT)
+
+    return jsonify([
+        {
+            "id": b.id,
+            "title": b.title,
+            "subtitle": (
+                f"{b.series.name} · {t('Volume {n}', n=b.volume)}" if b.series and b.volume
+                else (b.series.name if b.series else b.author_list)
+            ),
+            "url": url_for("books.detail", book_id=b.id),
+            "cover": url_for("static", filename="covers/" + b.cover_image) if b.cover_image else None,
+        }
+        for b in books
+    ])
 
 
 @books_bp.route("/check-duplicate")

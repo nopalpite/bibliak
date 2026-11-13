@@ -354,6 +354,50 @@ def test_shelves_view_stands_books_on_a_shelf_with_gaps_for_missing_volumes(clie
     assert f"series_id={series.id}&amp;volume=2" in html  # the gap links to the pre-filled add form
 
 
+def test_quick_search_returns_matching_books_as_json(client, db):
+    client.post("/books/new", data={"title": "Blacksad", "item_type": "BD", "authors": "Juan Díaz Canales"})
+    client.post("/books/new", data={"title": "XIII", "item_type": "BD"})
+
+    response = client.get("/books/quick-search?q=blacksad")
+
+    assert response.status_code == 200
+    results = response.get_json()
+    assert [r["title"] for r in results] == ["Blacksad"]
+    assert results[0]["subtitle"] == "Juan Díaz Canales"
+    assert results[0]["url"].startswith("/books/")
+    assert results[0]["cover"] is None
+
+
+def test_quick_search_without_a_query_lists_the_latest_additions_first(client, db):
+    for title in ("Premier", "Deuxième", "Troisième"):
+        client.post("/books/new", data={"title": title, "item_type": "BD"})
+
+    results = client.get("/books/quick-search").get_json()
+
+    assert [r["title"] for r in results] == ["Troisième", "Deuxième", "Premier"]
+
+
+def test_quick_search_is_capped(client, db):
+    for n in range(12):
+        client.post("/books/new", data={"title": f"Livre {n}", "item_type": "BD"})
+
+    assert len(client.get("/books/quick-search?q=Livre").get_json()) == 8
+
+
+def test_quick_search_shows_series_and_volume_as_the_subtitle(client, db, series):
+    client.post("/books/new", data={"title": "T2", "item_type": "BD", "series_id": str(series.id), "volume": "2"})
+
+    results = client.get("/books/quick-search?q=T2").get_json()
+
+    assert results[0]["subtitle"] == "XIII · Volume 2"
+
+
+def test_every_page_carries_the_command_palette(client):
+    html = client.get("/").get_data(as_text=True)
+    assert 'id="command-palette"' in html
+    assert 'onclick="openPalette()"' in html
+
+
 def test_index_page_is_english_by_default(client):
     response = client.get("/")
     assert "No book matches".encode() in response.data

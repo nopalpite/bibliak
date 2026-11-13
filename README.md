@@ -5,6 +5,7 @@ Self-hosted app for managing a comic book and book collection — no account, no
 ## Features
 
 - Collection browsable as a grid (covers), a list (table), or **shelves** (grouped by series, sorted by volume — with a dedicated page per series showing missing volumes if the total volume count is set)
+- **Command palette** (Ctrl/Cmd+K, from any page): jump to a book or an action from the keyboard
 - Instant search (title, author, publisher, series, ISBN) + combinable filters (type, series, publisher, tag, location, condition) + sorting
 - Manual book entry with location and authors autocomplete on existing reference data. Series, publisher, and tags must be chosen from existing entries (dropdown, with quick creation via a "+" button without leaving the page) to avoid duplicates caused by typos — tags are multi-select, shown as removable chips. The volume number is set via an incremental stepper (+/-) as well as direct input.
 - Add by barcode scan (smartphone camera) or manual ISBN entry (desktop/tablet), with automatic metadata retrieval via Open Library
