@@ -76,6 +76,12 @@ def test_scan_page_offers_a_rafale_item_type_selector(client, db):
     assert "<option value=\"BD\">BD</option>" in html
 
 
+def test_scan_page_has_a_session_counter_and_a_finish_button(client, db):
+    html = client.get("/scan/").get_data(as_text=True)
+    assert 'id="rafale-count"' in html
+    assert 'id="rafale-finish"' in html
+
+
 def test_rafale_scan_creates_the_book_automatically(client, db, monkeypatch):
     _patch_attempt_search(monkeypatch, [
         ("ok", {"title": "XIII", "isbn": "9782505004900", "authors": ["Jean Van Hamme"], "source": "Open Library"})
@@ -109,6 +115,7 @@ def test_rafale_scan_asks_for_confirmation_instead_of_auto_adding_a_duplicate(cl
     assert response.status_code == 200
     assert b"rafale-confirm" in response.data
     assert Book.query.count() == 1  # not auto-added
+    assert b"paused until you decide" in response.data
 
 
 def test_rafale_confirm_creates_the_book_anyway(client, db):

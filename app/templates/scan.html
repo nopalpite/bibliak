@@ -2,8 +2,31 @@
 
 {% block title %}{{ t('Scan a book') }} — BIBLIAK{% endblock %}
 
+{% block extra_styles %}
+<style>
+  /* Rafale mode: the session list reads as one card, and disappears while empty. */
+  #rafale-history:empty { display: none; }
+  #rafale-history { margin-top: .5rem; padding: 0 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; box-shadow: var(--card-shadow); }
+  #rafale-history > div:last-child { border-bottom: 0; }
+
+  /* "Finish" stays within thumb's reach above the mobile tab bar. */
+  #rafale-finish-bar { position: sticky; bottom: calc(5.25rem + env(safe-area-inset-bottom)); z-index: 25; margin-top: 1rem; }
+  @media (min-width: 1024px) { #rafale-finish-bar { position: static; } }
+
+  /* On a phone, rafale keeps the camera in view while results pile up below
+     it, and shows those results before the manual entry field. */
+  @media (max-width: 1023px) {
+    .rafale-on #camera-scan-block { position: sticky; top: 4.25rem; z-index: 20; }
+    .rafale-on #scan-flow { display: flex; flex-direction: column; }
+    .rafale-on #result-zone { order: 1; }
+    .rafale-on #rafale-history { order: 2; }
+    .rafale-on #manual-entry-card { order: 3; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-xl mx-auto">
+<div id="scan-root" class="max-w-xl mx-auto">
   <p class="kicker mb-1">{{ t('Add to collection') }}</p>
   <h1 class="font-display text-3xl font-medium mb-1">{{ t('Scan a book') }}</h1>
   <p class="text-sm mb-6" style="color: var(--ink-muted);">
@@ -45,20 +68,32 @@
       {{ t('Rafale mode (scan several books in a row)') }}
     </label>
     <div id="rafale-options" class="hidden mt-3">
-      <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Type for this session') }}</label>
-      <select id="rafale-item-type" onchange="syncRafaleFields()" class="w-full sm:w-64 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
-        {% for type_ in item_types %}
-        <option value="{{ type_ }}">{{ type_ }}</option>
-        {% endfor %}
-      </select>
+      <div class="flex items-end justify-between gap-4">
+        <div class="flex-1 min-w-0">
+          <label class="block text-xs mb-1" style="color: var(--ink-muted);">{{ t('Type for this session') }}</label>
+          <select id="rafale-item-type" onchange="syncRafaleFields()" class="w-full sm:w-64 px-3 py-2 rounded-lg border text-sm bg-transparent" style="border-color: var(--border);">
+            {% for type_ in item_types %}
+            <option value="{{ type_ }}">{{ type_ }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="text-right flex-shrink-0" aria-live="polite">
+          <div class="text-xs" style="color: var(--ink-muted);">{{ t('Added') }}</div>
+          <div id="rafale-count" class="font-display text-3xl leading-none">0</div>
+        </div>
+      </div>
       <p class="text-xs mt-2" style="color: var(--ink-muted);">
         {{ t('Each match is added automatically with this type — edit it afterward if needed. A possible duplicate still asks for confirmation.') }}
+      </p>
+      <p id="rafale-camera-note" class="hidden text-xs mt-1" style="color: var(--ink-muted);">
+        {{ t('The camera stays on — a short pause follows each scan.') }}
       </p>
     </div>
   </div>
 
+  <div id="scan-flow">
   <!-- Manual ISBN entry: always available (the only option on desktop/tablet, or if the camera doesn't work) -->
-  <div class="card p-5">
+  <div id="manual-entry-card" class="card p-5">
     <h2 id="manual-entry-title" class="text-sm font-semibold mb-3">{{ t('Enter the ISBN / EAN code') }}</h2>
     <form
       id="isbn-form"
@@ -79,7 +114,12 @@
   </div>
 
   <div id="result-zone" class="mt-6"></div>
-  <div id="rafale-history" class="mt-2"></div>
+  <div id="rafale-history"></div>
+  </div>
+
+  <div id="rafale-finish-bar" class="hidden">
+    <a id="rafale-finish" href="{{ url_for('main.index') }}" class="btn-primary flex items-center justify-center w-full h-12 rounded-xl text-sm font-medium"></a>
+  </div>
 </div>
 
 <script>
@@ -92,6 +132,8 @@
   // executed.
 
   const SCAN_I18N = {
+    finishOne: {{ t('Finish session ({n} book)')|tojson }},
+    finishMany: {{ t('Finish session ({n} books)')|tojson }},
     activateCamera: {{ t('Enable camera')|tojson }},
     stop: {{ t('Stop')|tojson }},
     scanUnavailable: {{ t('Scan unavailable')|tojson }},
@@ -130,13 +172,26 @@
     el('rafale-item-type-flag').value = (on && typeSelect) ? typeSelect.value : '';
   }
 
+  // The session list is the source of truth for the count: one entry per
+  // book added since the page loaded (including a duplicate added anyway).
+  function updateRafaleCount() {
+    const count = el('rafale-history').children.length;
+    el('rafale-count').textContent = count;
+    const finishBar = el('rafale-finish-bar');
+    finishBar.classList.toggle('hidden', !(isRafaleMode() && count > 0));
+    el('rafale-finish').textContent = (count === 1 ? SCAN_I18N.finishOne : SCAN_I18N.finishMany).replace('{n}', count);
+  }
+
   function onRafaleToggle() {
     const on = isRafaleMode();
     el('rafale-options').classList.toggle('hidden', !on);
+    el('scan-root').classList.toggle('rafale-on', on);
+    el('rafale-camera-note').classList.toggle('hidden', !(on && isMobile));
     if (!on) {
       rafalePaused = false;
     }
     syncRafaleFields();
+    updateRafaleCount();
   }
 
   function skipRafaleDuplicate() {
@@ -162,8 +217,16 @@
     rafalePaused = !!evt.detail.target.querySelector('form[hx-post*="rafale-confirm"]');
     if (!rafalePaused) {
       rafaleCooldownUntil = Date.now() + 800;
+    } else {
+      // A duplicate needs a decision: bring it into view, past the sticky
+      // camera and the finish bar that would otherwise cover it.
+      evt.detail.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+    updateRafaleCount();
   });
+
+  // The "added" fragment appends its entry to the session list out of band.
+  document.body.addEventListener('htmx:oobAfterSwap', updateRafaleCount);
 
   function el(id) {
     return document.getElementById(id);

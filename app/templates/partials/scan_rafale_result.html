@@ -3,8 +3,9 @@
   {% with variant = "live" %}
   {% include "partials/duplicate_alert.html" %}
   {% endwith %}
+  <p class="text-xs mt-2" style="color: var(--ink-muted);">{{ t('Camera scanning is paused until you decide.') }}</p>
   <div class="flex gap-2 mt-2">
-    <form hx-post="{{ url_for('scan.rafale_confirm') }}" hx-target="#result-zone">
+    <form class="flex-1" hx-post="{{ url_for('scan.rafale_confirm') }}" hx-target="#result-zone">
       <input type="hidden" name="title" value="{{ result.title or '' }}">
       <input type="hidden" name="isbn" value="{{ result.isbn or '' }}">
       <input type="hidden" name="authors" value="{{ (result.authors or [])|join(',') }}">
@@ -12,11 +13,11 @@
       <input type="hidden" name="publication_date" value="{{ result.publication_date or '' }}">
       <input type="hidden" name="image_url" value="{{ result.image_url or '' }}">
       <input type="hidden" name="item_type" value="{{ item_type }}">
-      <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border font-medium" style="border-color: var(--accent); color: var(--accent);">
+      <button type="submit" class="w-full h-11 text-sm px-3 rounded-lg border font-medium" style="border-color: var(--accent); color: var(--accent);">
         {{ t('Add anyway') }}
       </button>
     </form>
-    <button type="button" onclick="skipRafaleDuplicate()" class="text-xs px-3 py-1.5 rounded-lg border" style="border-color: var(--border); color: var(--ink-muted);">
+    <button type="button" onclick="skipRafaleDuplicate()" class="btn-primary flex-1 h-11 text-sm px-3 rounded-lg font-medium">
       {{ t('Ignore') }}
     </button>
   </div>
