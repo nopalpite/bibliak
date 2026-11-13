@@ -141,6 +141,30 @@ def set_cover(book, filename):
     db.session.commit()
 
 
+def series_volumes(series):
+    """A series' owned books (sorted by volume, volume-less ones last) and,
+    when its total volume count is known, the volume numbers still missing."""
+    books = (
+        Book.query.filter_by(series_id=series.id)
+        .order_by(Book.volume.is_(None), Book.volume)
+        .all()
+    )
+    owned_volumes = {b.volume for b in books if b.volume is not None}
+    missing = []
+    if series.expected_volume_count:
+        missing = [n for n in range(1, series.expected_volume_count + 1) if n not in owned_volumes]
+    return books, missing
+
+
+def series_strip(books, missing_volumes):
+    """Owned books and missing volumes merged in volume order, as a list of
+    {"volume": n_or_None, "book": book_or_None} — what a series' volume row
+    needs to show the gaps where they belong."""
+    entries = [{"volume": b.volume, "book": b} for b in books]
+    entries += [{"volume": n, "book": None} for n in missing_volumes]
+    return sorted(entries, key=lambda e: (e["volume"] is None, e["volume"] or 0))
+
+
 def toggle_read(book):
     """Toggles a book's read / unread status."""
     book.read = not book.read

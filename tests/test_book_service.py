@@ -251,3 +251,30 @@ def test_find_duplicate_excludes_the_book_being_edited(app, db):
     )
 
     assert duplicate is None
+
+
+def test_series_volumes_lists_owned_books_in_order_and_the_missing_volumes(app, db, series):
+    series.expected_volume_count = 5
+    db.session.commit()
+    book_service.create_book(_minimal_data(title="T3", series_id=series.id, volume=3))
+    book_service.create_book(_minimal_data(title="T1", series_id=series.id, volume=1))
+    book_service.create_book(_minimal_data(title="Hors-série", series_id=series.id, volume=None))
+
+    books, missing = book_service.series_volumes(series)
+
+    assert [b.title for b in books] == ["T1", "T3", "Hors-série"]  # volume-less last
+    assert missing == [2, 4, 5]
+
+
+def test_series_strip_puts_the_gaps_where_they_belong(app, db, series):
+    series.expected_volume_count = 4
+    db.session.commit()
+    book_service.create_book(_minimal_data(title="T1", series_id=series.id, volume=1))
+    book_service.create_book(_minimal_data(title="T3", series_id=series.id, volume=3))
+
+    books, missing = book_service.series_volumes(series)
+    strip = book_service.series_strip(books, missing)
+
+    assert [(e["volume"], e["book"] is not None) for e in strip] == [
+        (1, True), (2, False), (3, True), (4, False)
+    ]

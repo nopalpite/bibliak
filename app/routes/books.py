@@ -232,8 +232,20 @@ def new():
 @books_bp.route("/<int:book_id>")
 def detail(book_id):
     book = Book.query.get_or_404(book_id)
+
+    volume_strip, missing_volumes = [], []
+    if book.series:
+        series_books, missing_volumes = book_service.series_volumes(book.series)
+        volume_strip = book_service.series_strip(series_books, missing_volumes)
+
     return render_template(
-        "book_detail.html", book=book, image_error=request.args.get("image_error")
+        "book_detail.html",
+        book=book,
+        image_error=request.args.get("image_error"),
+        cover_tint=image_service.dominant_color(book.cover_image) if book.cover_image else None,
+        volume_strip=volume_strip,
+        missing_volumes=missing_volumes,
+        missing_labels=[f"T{n}" for n in missing_volumes],
     )
 
 

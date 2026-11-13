@@ -1,7 +1,8 @@
 from flask import Blueprint, current_app, redirect, render_template, request, send_file, url_for
 
 from app.extensions import db
-from app.models import Book, Location, Publisher, Series, Tag
+from app.models import Location, Publisher, Series, Tag
+from app.services import book_service
 from app.services.search_service import group_by_series, search_books
 from app.services.settings_service import get_setting
 from app.services.stats_service import collection_stats
@@ -33,16 +34,7 @@ def series_detail(series_id):
     """Series "shelf" page: every owned volume, sorted, with missing volumes
     flagged as gaps if the total volume count is known."""
     series = Series.query.get_or_404(series_id)
-    books = (
-        Book.query.filter_by(series_id=series.id)
-        .order_by(Book.volume.is_(None), Book.volume)
-        .all()
-    )
-
-    owned_volumes = {b.volume for b in books if b.volume is not None}
-    missing_volumes = []
-    if series.expected_volume_count:
-        missing_volumes = [n for n in range(1, series.expected_volume_count + 1) if n not in owned_volumes]
+    books, missing_volumes = book_service.series_volumes(series)
 
     return render_template(
         "series_detail.html",

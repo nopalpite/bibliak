@@ -5,6 +5,7 @@ app/static/covers, under a generated (uuid) filename to avoid any collision.
 """
 
 import uuid
+from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
 
@@ -51,6 +52,19 @@ def _resize_and_save(image):
     path = _covers_dir() / filename
     image.save(path, "JPEG", quality=88)
     return filename
+
+
+@lru_cache(maxsize=512)
+def dominant_color(filename):
+    """The average color of a stored cover as "#rrggbb", or None if it can't
+    be read. Cached: filenames are unique and never rewritten, and the
+    detail page asks on every view."""
+    try:
+        with Image.open(_covers_dir() / filename) as image:
+            r, g, b = image.convert("RGB").resize((1, 1), Image.Resampling.BOX).getpixel((0, 0))
+    except Exception:
+        return None
+    return f"#{r:02x}{g:02x}{b:02x}"
 
 
 def download_cover(url):

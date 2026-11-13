@@ -314,6 +314,33 @@ def test_mobile_bottom_navigation_replaces_the_burger_menu(client):
     assert "openMobileMenu" not in html
 
 
+def test_detail_page_shows_series_progress_and_the_missing_volumes(client, db, series):
+    series.expected_volume_count = 4
+    db.session.commit()
+    first = client.post(
+        "/books/new", data={"title": "T1", "item_type": "BD", "series_id": str(series.id), "volume": "1"}
+    )
+    client.post("/books/new", data={"title": "T3", "item_type": "BD", "series_id": str(series.id), "volume": "3"})
+    book_id = first.location.rstrip("/").rsplit("/", 1)[-1]
+
+    html = client.get(f"/books/{book_id}").get_data(as_text=True)
+
+    assert "2 of 4 volumes" in html
+    assert "Missing: T2, T4" in html
+    assert "Other volumes in this series" in html
+    assert f"series_id={series.id}&amp;volume=2" in html  # a gap links to the pre-filled add form
+
+
+def test_detail_page_without_a_series_has_no_series_section(client, db):
+    created = client.post("/books/new", data={"title": "Seul", "item_type": "Roman"})
+    book_id = created.location.rstrip("/").rsplit("/", 1)[-1]
+
+    html = client.get(f"/books/{book_id}").get_data(as_text=True)
+
+    assert "Other volumes in this series" not in html
+    assert "Seul" in html
+
+
 def test_index_page_is_english_by_default(client):
     response = client.get("/")
     assert "No book matches".encode() in response.data

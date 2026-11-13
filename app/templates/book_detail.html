@@ -4,8 +4,8 @@
 
 {% block content %}
 {% from "partials/cover_fallback.html" import cover_fallback %}
-<div class="max-w-4xl mx-auto">
-  <a href="{{ url_for('main.index') }}" class="inline-flex items-center gap-1.5 text-sm mb-6" style="color: var(--ink-muted);">
+<div class="max-w-5xl mx-auto">
+  <a href="{{ url_for('main.index') }}" class="inline-flex items-center gap-1.5 text-sm mb-5" style="color: var(--ink-muted);">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
     {{ t('Back to collection') }}
   </a>
@@ -16,99 +16,161 @@
   </div>
   {% endif %}
 
-  <div class="grid sm:grid-cols-[220px_1fr] gap-8">
-    <div class="flex gap-3">
-      <span class="book-spine self-stretch {{ book.series.spine_color_class if book.series }}"></span>
-      <div class="cover relative flex-1 aspect-[2/3] rounded-xl overflow-hidden" style="background: var(--surface-muted);">
-        {% if book.cover_image %}
-        <img src="{{ url_for('static', filename='covers/' + book.cover_image) }}" alt="{{ t('Cover of {title}', title=book.title) }}" class="w-full h-full object-cover">
-        {% else %}
-        {{ cover_fallback(book, spine=False) }}
+  <!-- Hero: the book resting on a band tinted with its own colors -->
+  <section class="detail-hero card overflow-hidden p-6 sm:p-10 {{ book.series.spine_color_class if book.series }}"
+           {% if cover_tint %}style="--hero-tint: {{ cover_tint }};"{% endif %}>
+    <div class="grid sm:grid-cols-[240px_1fr] gap-8 sm:gap-12 items-start">
+      <div class="flex w-56 sm:w-auto mx-auto sm:mx-0">
+        <span class="book-spine self-stretch" style="width: 12px; border-radius: 4px 0 0 4px;"></span>
+        <div class="cover book-resting relative flex-1 aspect-[2/3] overflow-hidden" style="background: var(--surface-muted); border-radius: 0 8px 8px 0;">
+          {% if book.cover_image %}
+          <img src="{{ url_for('static', filename='covers/' + book.cover_image) }}" alt="{{ t('Cover of {title}', title=book.title) }}" class="w-full h-full object-cover">
+          {% else %}
+          {{ cover_fallback(book, spine=False) }}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <span class="px-2 py-0.5 rounded-full text-xs" style="background: var(--accent-soft); color: var(--accent);">{{ book.item_type }}</span>
+          {% if book.series %}
+          <a href="{{ url_for('main.series_detail', series_id=book.series.id) }}" class="text-xs font-semibold uppercase tracking-wide hover:underline" style="color: var(--spine-base);">
+            {{ book.series.name }}{% if book.volume %} · {{ t('Volume {n}', n=book.volume) }}{% endif %}
+          </a>
+          {% endif %}
+        </div>
+
+        <h1 class="font-display text-3xl sm:text-4xl font-medium leading-tight mb-2">{{ book.title }}</h1>
+        {% if book.author_list %}
+        <p class="text-base mb-4" style="color: var(--ink-muted);">{{ book.author_list }}</p>
+        {% endif %}
+
+        {% if book.tags %}
+        <div class="flex flex-wrap gap-1.5 mb-5">
+          {% for tag in book.tags %}
+          <span class="px-2.5 py-1 rounded-full text-xs border" style="border-color: var(--border); color: var(--ink-muted); background: var(--surface);">{{ tag.label }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="flex flex-wrap items-center gap-3 mb-6">
+          <form method="post" action="{{ url_for('books.toggle_read', book_id=book.id) }}">
+            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-medium transition-colors border"
+                    style="{{ 'background: var(--foliage-soft); color: var(--foliage); border-color: var(--foliage);' if book.read else 'background: var(--surface); color: var(--ink); border-color: var(--border);' }}">
+              {{ '✓ ' + t('Read') if book.read else t('Mark as read') }}
+            </button>
+          </form>
+          <a href="{{ url_for('books.edit', book_id=book.id) }}" class="btn-primary px-4 py-2 rounded-lg text-sm font-medium">
+            {{ t('Edit') }}
+          </a>
+          <form method="post" action="{{ url_for('books.delete', book_id=book.id) }}"
+                onsubmit='return confirm({{ t('Permanently delete "{title}" from the collection?', title=book.title)|tojson }});'>
+            <button type="submit" class="px-3 py-2 rounded-lg text-sm" style="color: var(--ink-muted);">
+              {{ t('Delete') }}
+            </button>
+          </form>
+        </div>
+
+        {% if book.series %}
+        {% set owned = volume_strip|selectattr('book')|list|length %}
+        {% set expected = book.series.expected_volume_count %}
+        <a href="{{ url_for('main.series_detail', series_id=book.series.id) }}" class="inline-flex items-center gap-5 px-5 py-4 rounded-xl border" style="background: var(--surface); border-color: var(--border);">
+          {% if expected %}
+          {% set ratio = [owned / expected, 1]|min %}
+          <svg width="76" height="76" viewBox="0 0 84 84" role="img" aria-label="{{ t('{owned} of {expected} volumes', owned=owned, expected=expected) }}" class="flex-shrink-0">
+            <circle cx="42" cy="42" r="34" fill="none" stroke="var(--border)" stroke-width="9"/>
+            <circle cx="42" cy="42" r="34" fill="none" stroke="var(--spine-base, var(--accent))" stroke-width="9" stroke-linecap="round"
+                    stroke-dasharray="{{ (213.63 * ratio)|round(1) }} 213.63" transform="rotate(-90 42 42)"/>
+            <text x="42" y="47" text-anchor="middle" font-size="16" font-weight="700" fill="currentColor" style="font-family: var(--font-body);">{{ owned }}/{{ expected }}</text>
+          </svg>
+          {% endif %}
+          <span class="text-sm">
+            <span class="block font-semibold">
+              {% if expected %}{{ t('{owned} of {expected} volumes', owned=owned, expected=expected) }}{% else %}{{ tn('{n} volume', '{n} volumes', owned) }}{% endif %}
+            </span>
+            {% if missing_volumes %}
+            <span class="block mt-0.5" style="color: var(--ink-muted);">{{ t('Missing: {volumes}', volumes=missing_labels|join(', ')) }}</span>
+            {% endif %}
+          </span>
+        </a>
         {% endif %}
       </div>
     </div>
+  </section>
 
-    <div>
-      <span class="px-2 py-0.5 rounded-full text-xs" style="background: var(--accent-soft); color: var(--accent);">{{ book.item_type }}</span>
-      <h1 class="font-display text-3xl font-medium mt-2 mb-1">{{ book.title }}</h1>
-      {% if book.series %}
-      <p class="text-sm mb-4 flex items-center gap-2 {{ book.series.spine_color_class }}" style="color: var(--ink-muted);">
-        <span class="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style="background: var(--spine-base);"></span>
-        <a href="{{ url_for('main.series_detail', series_id=book.series.id) }}" class="hover:underline font-medium" style="color: var(--spine-base);">{{ book.series.name }}</a>{% if book.volume %} — {{ t('Volume {n}', n=book.volume) }}{% endif %}
-      </p>
-      {% endif %}
-
-      <div class="flex items-center gap-3 mb-4">
-        <span class="text-xs font-semibold uppercase tracking-wide" style="color: var(--ink-muted);">{{ t('Reading') }}</span>
-        <form method="post" action="{{ url_for('books.toggle_read', book_id=book.id) }}">
-          <button type="submit" class="px-3 py-1 rounded-full text-sm font-medium transition-colors"
-                  style="{{ 'background: var(--foliage-soft); color: var(--foliage);' if book.read else 'background: var(--surface-muted); color: var(--ink-muted);' }}">
-            {{ '✓ ' + t('Read') if book.read else t('Unread') }}
-          </button>
-        </form>
-      </div>
-
-      <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm mb-6">
-        <div>
-          <dt style="color: var(--ink-muted);">{{ t('Author(s)') }}</dt>
-          <dd class="mt-0.5">{{ book.author_list or "—" }}</dd>
-        </div>
-        <div>
-          <dt style="color: var(--ink-muted);">{{ t('Publisher') }}</dt>
-          <dd class="mt-0.5">{{ book.publisher.name if book.publisher else "—" }}</dd>
-        </div>
-        <div>
-          <dt style="color: var(--ink-muted);">{{ t('Publication date') }}</dt>
-          <dd class="mt-0.5">{{ book.publication_date or "—" }}</dd>
-        </div>
-        <div>
-          <dt style="color: var(--ink-muted);">ISBN / EAN</dt>
-          <dd class="mt-0.5 font-code">{{ book.isbn or "—" }}</dd>
-        </div>
-        <div>
-          <dt style="color: var(--ink-muted);">{{ t('Condition') }}</dt>
-          <dd class="mt-0.5">{{ book.condition or "—" }}</dd>
-        </div>
-        <div>
-          <dt style="color: var(--ink-muted);">{{ t('Location') }}</dt>
-          <dd class="mt-0.5">{{ book.location.label if book.location else "—" }}</dd>
-        </div>
-      </dl>
-
-      {% if book.tags %}
-      <div class="flex flex-wrap gap-1.5 mb-6">
-        {% for tag in book.tags %}
-        <span class="px-2.5 py-1 rounded-full text-xs border" style="border-color: var(--border); color: var(--ink-muted);">{{ tag.label }}</span>
-        {% endfor %}
-      </div>
-      {% endif %}
-
+  <div class="grid md:grid-cols-[1fr_320px] gap-8 mt-8">
+    <div class="space-y-6">
       {% if book.summary %}
-      <div class="mb-6">
+      <div>
         <h2 class="text-xs font-semibold uppercase tracking-wide mb-1.5" style="color: var(--ink-muted);">{{ t('Summary') }}</h2>
         <p class="text-sm leading-relaxed">{{ book.summary }}</p>
       </div>
       {% endif %}
 
       {% if book.personal_notes %}
-      <div class="mb-6 p-4 rounded-lg" style="background: var(--surface-muted);">
+      <div class="p-4 rounded-lg" style="background: var(--surface-muted);">
         <h2 class="text-xs font-semibold uppercase tracking-wide mb-1.5" style="color: var(--ink-muted);">{{ t('Personal notes') }}</h2>
         <p class="text-sm leading-relaxed">{{ book.personal_notes }}</p>
       </div>
       {% endif %}
-
-      <div class="flex items-center gap-3">
-        <a href="{{ url_for('books.edit', book_id=book.id) }}" class="btn-primary px-4 py-2 rounded-lg text-sm font-medium">
-          {{ t('Edit') }}
-        </a>
-        <form method="post" action="{{ url_for('books.delete', book_id=book.id) }}"
-              onsubmit='return confirm({{ t('Permanently delete "{title}" from the collection?', title=book.title)|tojson }});'>
-          <button type="submit" class="px-4 py-2 rounded-lg text-sm border" style="border-color: var(--accent); color: var(--accent);">
-            {{ t('Delete') }}
-          </button>
-        </form>
-      </div>
     </div>
+
+    <dl class="grid grid-cols-2 md:grid-cols-1 gap-x-6 gap-y-3 text-sm content-start">
+      <div>
+        <dt style="color: var(--ink-muted);">{{ t('Publisher') }}</dt>
+        <dd class="mt-0.5">{{ book.publisher.name if book.publisher else "—" }}</dd>
+      </div>
+      <div>
+        <dt style="color: var(--ink-muted);">{{ t('Publication date') }}</dt>
+        <dd class="mt-0.5">{{ book.publication_date or "—" }}</dd>
+      </div>
+      <div>
+        <dt style="color: var(--ink-muted);">ISBN / EAN</dt>
+        <dd class="mt-0.5 font-code">{{ book.isbn or "—" }}</dd>
+      </div>
+      <div>
+        <dt style="color: var(--ink-muted);">{{ t('Condition') }}</dt>
+        <dd class="mt-0.5">{{ book.condition or "—" }}</dd>
+      </div>
+      <div>
+        <dt style="color: var(--ink-muted);">{{ t('Location') }}</dt>
+        <dd class="mt-0.5">{{ book.location.label if book.location else "—" }}</dd>
+      </div>
+    </dl>
   </div>
+
+  {% if book.series and volume_strip|length > 1 %}
+  <section class="mt-10">
+    <h2 class="text-xs font-semibold uppercase tracking-wide mb-3" style="color: var(--ink-muted);">{{ t('Other volumes in this series') }}</h2>
+    <div class="flex gap-4 overflow-x-auto pb-3 px-1 pt-1">
+      {% for entry in volume_strip %}
+      {% if entry.book %}
+      {% set current = entry.book.id == book.id %}
+      <a href="{{ url_for('books.detail', book_id=entry.book.id) }}" class="flex-shrink-0 w-24 group" {% if current %}aria-current="page"{% endif %}>
+        <div class="cover relative aspect-[2/3] rounded-md overflow-hidden mb-1.5"
+             style="background: var(--surface-muted);{% if current %} outline: 2px solid var(--spine-base, var(--accent)); outline-offset: 2px;{% endif %}">
+          {% if entry.book.cover_image %}
+          <img src="{{ url_for('static', filename='covers/' + entry.book.cover_image) }}" alt="" class="w-full h-full object-cover" loading="lazy">
+          {% else %}
+          {{ cover_fallback(entry.book) }}
+          {% endif %}
+        </div>
+        <p class="text-xs text-center">{% if entry.volume is not none %}{{ t('Volume {n}', n=entry.volume) }}{% else %}{{ entry.book.title }}{% endif %}</p>
+      </a>
+      {% else %}
+      <a href="{{ url_for('books.new', series_id=book.series.id, volume=entry.volume) }}" class="flex-shrink-0 w-24 group"
+         title="{{ t('Add volume {n} to the collection', n=entry.volume) }}">
+        <div class="aspect-[2/3] rounded-md border-2 border-dashed mb-1.5 flex flex-col items-center justify-center gap-1 text-center px-1 transition-colors group-hover:border-solid" style="border-color: var(--border); color: var(--ink-muted);">
+          <span class="text-xl leading-none">+</span>
+          <span class="text-[11px]">{{ t('missing') }}</span>
+        </div>
+        <p class="text-xs text-center" style="color: var(--ink-muted);">{{ t('Volume {n}', n=entry.volume) }}</p>
+      </a>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 </div>
 {% endblock %}

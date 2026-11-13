@@ -99,9 +99,11 @@
   "Location": "Emplacement",
   "Locations": "Emplacements",
   "Main navigation": "Navigation principale",
+  "Mark as read": "Marquer comme lu",
   "Merge": "Fusionner",
   "Merge \"{source}\" into \"{target}\"? \"{source}\" will be permanently deleted and its books reassigned to \"{target}\". This can't be undone.": "Fusionner « {source} » dans « {target} » ? « {source} » sera définitivement supprimé et ses ouvrages seront réattribués à « {target} ». Cette action est irréversible.",
   "Merge two duplicate entries": "Fusionner deux entrées en doublon",
+  "Missing: {volumes}": "Manquent : {volumes}",
   "New book": "Nouvel ouvrage",
   "New condition (e.g. Collector)": "Nouvel état (ex : Collector)",
   "New location (e.g. Living room — shelf 2)": "Nouvel emplacement (ex : Salon — étagère 2)",
@@ -121,6 +123,7 @@
   "Not on Open Library at all? You can add it yourself — you'll be asked for the ISBN ({isbn}) again.": "Absent d'Open Library ? Vous pouvez l'ajouter vous-même — l'ISBN ({isbn}) vous sera redemandé.",
   "Or enter the code manually": "Ou saisir le code manuellement",
   "Or paste the link to an image found online": "Ou coller le lien d'une image trouvée en ligne",
+  "Other volumes in this series": "Autres tomes de la série",
   "Permanently delete \"{title}\" from the collection?": "Supprimer définitivement « {title} » de la collection ?",
   "Personal classification": "Classement personnel",
   "Personal notes": "Notes personnelles",
@@ -242,5 +245,6 @@
   "{n} book selected": "{n} ouvrage sélectionné",
   "{n} books selected": "{n} ouvrages sélectionnés",
   "Permanently delete {n} selected books from the collection?": "Supprimer définitivement {n} ouvrages sélectionnés de la collection ?",
-  "Select {title}": "Sélectionner {title}"
+  "Select {title}": "Sélectionner {title}",
+  "{owned} of {expected} volumes": "{owned} tomes sur {expected}"
 }

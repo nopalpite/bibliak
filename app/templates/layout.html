@@ -227,6 +227,14 @@
   }
   .group:hover .cover { transform: translateY(-6px); box-shadow: var(--card-shadow-hover); }
 
+  /* Detail page hero: a band tinted with the cover's dominant color (or the
+     series' spine color), and the book "resting" on it with a deeper shadow. */
+  .detail-hero { background: var(--surface); }
+  @supports (background: color-mix(in srgb, red 10%, white)) {
+    .detail-hero { background: linear-gradient(180deg, color-mix(in srgb, var(--hero-tint, var(--spine-base, var(--accent))) 24%, var(--surface)) 0%, var(--surface) 100%); }
+  }
+  .book-resting { box-shadow: var(--cover-shadow), 0 28px 36px -20px rgba(0,0,0,.45); }
+
   /* Generated cover for a book without an image (partials/cover_fallback.html):
      tinted with the series' spine color when it has one. */
   .gen-cover { background: linear-gradient(150deg, var(--surface) 0%, var(--surface-muted) 100%); }

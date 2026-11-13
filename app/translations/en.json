@@ -99,9 +99,11 @@
   "Location": "Location",
   "Locations": "Locations",
   "Main navigation": "Main navigation",
+  "Mark as read": "Mark as read",
   "Merge": "Merge",
   "Merge \"{source}\" into \"{target}\"? \"{source}\" will be permanently deleted and its books reassigned to \"{target}\". This can't be undone.": "Merge \"{source}\" into \"{target}\"? \"{source}\" will be permanently deleted and its books reassigned to \"{target}\". This can't be undone.",
   "Merge two duplicate entries": "Merge two duplicate entries",
+  "Missing: {volumes}": "Missing: {volumes}",
   "New book": "New book",
   "New condition (e.g. Collector)": "New condition (e.g. Collector)",
   "New location (e.g. Living room — shelf 2)": "New location (e.g. Living room — shelf 2)",
@@ -121,6 +123,7 @@
   "Not on Open Library at all? You can add it yourself — you'll be asked for the ISBN ({isbn}) again.": "Not on Open Library at all? You can add it yourself — you'll be asked for the ISBN ({isbn}) again.",
   "Or enter the code manually": "Or enter the code manually",
   "Or paste the link to an image found online": "Or paste the link to an image found online",
+  "Other volumes in this series": "Other volumes in this series",
   "Permanently delete \"{title}\" from the collection?": "Permanently delete \"{title}\" from the collection?",
   "Personal classification": "Personal classification",
   "Personal notes": "Personal notes",
@@ -242,5 +245,6 @@
   "{n} book selected": "{n} book selected",
   "{n} books selected": "{n} books selected",
   "Permanently delete {n} selected books from the collection?": "Permanently delete {n} selected books from the collection?",
-  "Select {title}": "Select {title}"
+  "Select {title}": "Select {title}",
+  "{owned} of {expected} volumes": "{owned} of {expected} volumes"
 }
